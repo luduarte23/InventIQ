@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InventIQ · Entrega 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070f1c;--card:#ffffff0d;--line:#ffffff1f;--teal:#2dd4bf;--amber:#fbbf24;--vio:#a78bfa;--rose:#fb7185;--tx:#f1f6fc;--mu:#a3b6cc}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#000;color:var(--tx);font-family:Inter,system-ui,sans-serif;overflow:hidden}
+#st{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;background:var(--bg);overflow:hidden}
+.slide{position:absolute;inset:0;padding:58px 76px 70px;display:none;flex-direction:column;justify-content:center;gap:22px;
+background:radial-gradient(700px 420px at 92% -5%,#2dd4bf30,transparent),radial-gradient(600px 400px at -5% 105%,#a78bfa2e,transparent),var(--bg)}
+.slide.on{display:flex}
+.slide.on>*{animation:up .55s both}.slide.on>*:nth-child(2){animation-delay:.07s}.slide.on>*:nth-child(3){animation-delay:.14s}.slide.on>*:nth-child(4){animation-delay:.21s}
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.slide::after{content:attr(data-n);position:absolute;right:56px;top:34px;font:800 64px Sora;color:#ffffff0c}
+.tag{font:600 14px Sora;letter-spacing:.22em;text-transform:uppercase;color:var(--teal)}
+h1,h2,h3{font-family:Sora,sans-serif}
+h1{font:800 120px/1 Sora}h1 span{background:linear-gradient(90deg,var(--teal),var(--amber));-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{font:800 44px/1.1 Sora}h2 em{font-style:normal;color:var(--teal)}
+p,li{font-size:19px;color:var(--mu);line-height:1.45}b{color:var(--tx)}
+.g2,.g3,.g4,.g5{display:grid;gap:18px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g5{grid-template-columns:repeat(5,1fr)}
+.card{--a:var(--teal);background:var(--card);border:1px solid var(--line);border-top:3px solid var(--a);border-radius:16px;padding:20px 22px;backdrop-filter:blur(6px)}
+.card h3{font-size:19px;margin-bottom:6px}.card p{font-size:16px}.card .ico{font-size:34px;margin-bottom:6px}
+.big{font:800 46px Sora;color:var(--a)}
+.ph{border:2px dashed var(--teal);border-radius:18px;background:#2dd4bf10;color:var(--teal);display:flex;align-items:center;justify-content:center;text-align:center;font-size:17px;padding:16px;overflow:hidden}
+.ph img{width:100%;height:100%;object-fit:contain}
+.row{display:flex;gap:26px;align-items:stretch}.row>*{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{--a:var(--teal);border:1px solid var(--a);color:var(--a);background:#ffffff08;padding:7px 15px;border-radius:99px;font-size:16px}
+.lay{display:flex;justify-content:space-between;align-items:center;padding:15px 22px;border-radius:14px;font:600 20px Sora;border:1px solid var(--a);background:color-mix(in srgb,var(--a) 14%,transparent);color:var(--tx)}
+.lay small{font:400 15px Inter;color:var(--mu)}
+.flow{display:flex;align-items:center;gap:12px}.flow .card{flex:1;text-align:center}.flow i{font-style:normal;font-size:30px;color:var(--amber)}
+code,.gh{font-family:ui-monospace,Consolas,monospace}.gh{font-size:15px;line-height:1.7;color:var(--mu)}.gh b{color:var(--amber)}
+.us{display:flex;gap:12px;align-items:center;padding:11px 16px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:16px;color:var(--mu)}.us b{color:var(--teal);font-family:Sora}
+#nav{position:fixed;left:0;right:0;bottom:0;display:flex;gap:12px;align-items:center;padding:10px 18px;z-index:9;opacity:.35;transition:.3s}#nav:hover{opacity:1}
+#bar{flex:1;height:4px;border-radius:4px;background:#ffffff22;overflow:hidden}#bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--amber));transition:width .4s}
+#nav button{background:#ffffff14;border:1px solid var(--line);color:var(--tx);border-radius:9px;padding:6px 12px;font-size:15px;cursor:pointer}#c{font-size:13px;color:var(--mu)}
+@page{size:1280px 720px;margin:0}
+@media print{html,body{overflow:visible;height:auto;background:var(--bg)}#nav{display:none}#st{position:static;transform:none!important;width:1280px;height:auto}
+.slide{display:flex!important;position:relative;height:720px;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}.slide>*{animation:none!important}}
+</style>
+</head>
+<body>
+<div id="st">
+
+<section class="slide on" data-n="01">
+ <div class="row" style="align-items:center">
+  <div style="flex:1.5;display:flex;flex-direction:column;gap:20px">
+   <div class="tag">Ingeniería de Software I · Entrega 1</div>
+   <h1>Invent<span>IQ</span></h1>
+   <p style="font-size:28px;color:var(--tx);max-width:520px">El motor que decide qué comprar, cuándo y cuánto.</p>
+   <div class="chips"><span class="chip">Requisitos</span><span class="chip">Arquitectura</span><span class="chip">Trazabilidad</span><span class="chip">Riesgos</span></div>
+   <p style="font-size:16px">Luis Duarte · Santiago Amezquita · Miguel Suárez · Sebastián Parra<br>Docente: Magda Lucía Mejía Torres</p>
+  </div>
+  <div class="ph" style="height:440px">🖼️ Espacio para logo<br>o imagen de portada<br><small>(reemplaza este bloque por &lt;img src="..."&gt;)</small></div>
+ </div>
+</section>
+
+<section class="slide" data-n="02">
+ <div class="tag">01 · El problema</div>
+ <h2>Horas cada semana <em>adivinando</em> el inventario</h2>
+ <div class="row">
+  <div style="display:flex;flex-direction:column;gap:14px;flex:1.4">
+   <div class="card" style="--a:var(--rose)"><h3>📝 Hoy</h3><p>Hojas de cálculo, listas a mano e intuición para reponer.</p></div>
+   <div class="card" style="--a:var(--amber)"><h3>💸 Pérdidas</h3><p>Productos vencidos, populares agotados y pedidos sin aprovechar descuentos ni envío gratis.</p></div>
+   <div class="card" style="--a:var(--vio)"><h3>👥 Quién lo sufre</h3><p>Dueños y gerentes de pequeños comercios minoristas.</p></div>
+  </div>
+  <div class="ph">🖼️ Espacio para imagen<br>(tienda / estantes / inventario)</div>
+ </div>
+</section>
+
+<section class="slide" data-n="03">
+ <div class="tag">02 · La solución</div>
+ <h2>No registra datos: <em>toma decisiones</em></h2>
+ <div class="flow">
+  <div class="card"><div class="ico">📟</div><h3>Captura</h3><p>Ventas por código de barras, descuento FIFO</p></div><i>→</i>
+  <div class="card" style="--a:var(--amber)"><div class="ico">📊</div><h3>Analiza</h3><p>Historial, entregas de proveedores, caja y vencimientos</p></div><i>→</i>
+  <div class="card" style="--a:var(--vio)"><div class="ico">🧠</div><h3>Decide</h3><p>ROP, pedidos, prioridad por presupuesto, descuentos</p></div><i>→</i>
+  <div class="card" style="--a:var(--rose)"><div class="ico">💬</div><h3>Avisa</h3><p>Borradores de orden y alertas por WhatsApp</p></div>
+ </div>
+ <p>Objetivo: <b>maximizar la rentabilidad</b> eliminando las estimaciones manuales.</p>
+</section>
+
+<section class="slide" data-n="04">
+ <div class="tag">03 · Alcance</div>
+ <h2>Qué entra en la <em>versión 1</em></h2>
+ <div class="g2">
+  <div class="card"><h3>✔ Dentro</h3><div class="chips">
+   <span class="chip">Ventas + FIFO</span><span class="chip">Historial de transacciones</span><span class="chip">Punto de reorden</span><span class="chip">Pedidos por proveedor</span><span class="chip">Optimización de MOQ</span><span class="chip">Tope de presupuesto</span><span class="chip">Descuentos por vencimiento</span><span class="chip">WhatsApp (Twilio)</span></div></div>
+  <div class="card" style="--a:var(--rose)"><h3>✘ Fuera</h3><div class="chips">
+   <span class="chip" style="--a:var(--rose)">POS complejo (impresoras, datáfonos)</span><span class="chip" style="--a:var(--rose)">Crédito "fiado"</span><span class="chip" style="--a:var(--rose)">Multi-sucursal</span><span class="chip" style="--a:var(--rose)">App móvil / offline</span><span class="chip" style="--a:var(--rose)">Productos sin código estándar</span></div></div>
+ </div>
+ <p>Aplicación web adaptativa, un solo inventario, pensada para <b>una sucursal</b>.</p>
+</section>
+
+<section class="slide" data-n="05">
+ <div class="tag">04 · Actores</div>
+ <h2>Quién interactúa con <em>InventIQ</em></h2>
+ <div class="g4">
+  <div class="card"><div class="ico">👤</div><h3>Administrador</h3><p>Configura proveedores, umbrales y precios. Quiere evitar vencimientos y recibir alertas sin revisar.</p></div>
+  <div class="card" style="--a:var(--amber)"><div class="ico">🧾</div><h3>Cajero</h3><p>Registra ventas rápido, casi sin capacitación.</p></div>
+  <div class="card" style="--a:var(--vio)"><div class="ico">📟</div><h3>Lector de barras</h3><p>Opcional, genérico: envía el código como texto. Siempre hay ingreso manual.</p></div>
+  <div class="card" style="--a:var(--rose)"><div class="ico">💬</div><h3>Twilio · WhatsApp</h3><p>Formatea y envía la información al WhatsApp del administrador.</p></div>
+ </div>
+</section>
+
+<section class="slide" data-n="06">
+ <div class="tag">05 · Requisitos funcionales</div>
+ <h2><em>11</em> funciones en 4 frentes</h2>
+ <div class="g4">
+  <div class="card"><h3>🔐 Acceso</h3><p><b>FR-01</b> Login y permisos por rol</p></div>
+  <div class="card" style="--a:var(--amber)"><h3>🛒 Ventas</h3><p><b>FR-02</b> Escaneo o digitación + descuento FIFO</p></div>
+  <div class="card" style="--a:var(--vio)"><h3>🧠 Reabastecer</h3><p><b>FR-03</b> ROP · <b>FR-04</b> orden por proveedor · <b>FR-05</b> MOQ · <b>FR-06</b> presupuesto</p></div>
+  <div class="card" style="--a:var(--rose)"><h3>⏳ Vencimientos</h3><p><b>FR-07</b> Descuento dinámico por fecha y ritmo de venta</p></div>
+ </div>
+ <div class="g4">
+  <div class="card"><p><b>FR-08</b> Ajuste manual de parámetros</p></div>
+  <div class="card"><p><b>FR-09</b> Mensaje listo para el proveedor</p></div>
+  <div class="card"><p><b>FR-10</b> Recepción y stock automático</p></div>
+  <div class="card"><p><b>FR-11</b> Auditoría de decisiones</p></div>
+ </div>
+</section>
+
+<section class="slide" data-n="07">
+ <div class="tag">06 · Atributos de calidad</div>
+ <h2>Metas <em>medibles</em> (ISO 25010)</h2>
+ <div class="g5">
+  <div class="card"><div class="big">&lt;1.5s</div><h3>Rendimiento</h3><p>Análisis de 1.000 productos</p></div>
+  <div class="card" style="--a:var(--amber)"><div class="big">≤3</div><h3>Usabilidad</h3><p>Clics para aprobar una orden</p></div>
+  <div class="card" style="--a:var(--rose)"><div class="big">100%</div><h3>Seguridad</h3><p>Endpoints admin con sesión</p></div>
+  <div class="card" style="--a:var(--vio)"><div class="big">≥80%</div><h3>Mantenibilidad</h3><p>Cobertura de pruebas sin servidor ni BD</p></div>
+  <div class="card"><div class="big">1</div><h3>Portabilidad</h3><p>Comando · Java 21 · BD embebida</p></div>
+ </div>
+</section>
+
+<section class="slide" data-n="08">
+ <div class="tag">07 · Historias de usuario</div>
+ <h2>Del requisito al <em>comportamiento</em></h2>
+ <div class="row">
+  <div style="display:flex;flex-direction:column;gap:10px;flex:1.1">
+   <div class="us"><b>US-01</b>Borradores de orden por proveedor</div>
+   <div class="us"><b>US-02</b>Completar el pedido mínimo (MOQ)</div>
+   <div class="us"><b>US-03</b>Escanear y descontar stock al instante</div>
+   <div class="us"><b>US-04</b>Descuentos por cercanía al vencimiento</div>
+   <div class="us"><b>US-05</b>Confirmar llegada y actualizar inventario</div>
+  </div>
+  <div class="card" style="--a:var(--amber)"><h3>US-03 · Gherkin</h3><div class="gh"><b>Dado</b> 3 u. vencen el 08/10 y 3 el 30/10<br><b>Cuando</b> el cajero escanea 2 veces el lote del 08/10<br><b>Entonces</b> ese lote queda con 1 unidad<br><br><b>Caso borde:</b> código inexistente → mensaje, sin cambios en stock ni venta.</div></div>
+ </div>
+</section>
+
+<section class="slide" data-n="09">
+ <div class="tag">08 · Arquitectura</div>
+ <h2>En capas + MVC: <em>un monolito</em> a propósito</h2>
+ <div class="row">
+  <div style="display:flex;flex-direction:column;gap:10px;flex:1.1">
+   <div class="lay" style="--a:var(--teal)">Presentación<small>MVC · seguridad de sesión</small></div>
+   <div class="lay" style="--a:var(--amber)">Aplicación<small>casos de uso y tareas programadas</small></div>
+   <div class="lay" style="--a:var(--rose)">Dominio<small>reglas puras: FIFO, ROP, MOQ</small></div>
+   <div class="lay" style="--a:var(--vio)">Infraestructura<small>BD embebida · Twilio</small></div>
+  </div>
+  <div class="ph">🖼️ Espacio para imagen<br>Diagrama UML de componentes</div>
+ </div>
+ <div class="g2">
+  <div class="card"><p><b>Por qué:</b> dominio aislado para pruebas sin servidor (NFR-04) y todo en memoria para baja latencia (NFR-01).</p></div>
+  <div class="card" style="--a:var(--amber)"><p><b>Trade-off:</b> menos escalabilidad horizontal a cambio de simplicidad y velocidad de desarrollo.</p></div>
+ </div>
+</section>
+
+<section class="slide" data-n="10">
+ <div class="tag">09 · Módulos y trazabilidad</div>
+ <h2>Cada requisito tiene <em>dueño</em></h2>
+ <div class="g3">
+  <div class="card"><h3>01 Seguridad y acceso</h3><p>FR-01 · NFR-03</p></div>
+  <div class="card" style="--a:var(--amber)"><h3>02 POS e Inventario</h3><p>FR-02</p></div>
+  <div class="card" style="--a:var(--vio)"><h3>03 Motor de Reabastecimiento</h3><p>FR-03 a FR-06 · NFR-01 · NFR-04</p></div>
+  <div class="card" style="--a:var(--rose)"><h3>04 Vencimientos y precios</h3><p>FR-07</p></div>
+  <div class="card"><h3>05 Compras y Administración</h3><p>FR-08 a FR-11 · NFR-02</p></div>
+  <div class="card" style="--a:var(--amber)"><h3>06 Infraestructura y Despliegue</h3><p>NFR-05</p></div>
+ </div>
+ <p>Matriz completa: los 16 requisitos (11 FR + 5 NFR) están asignados a un módulo.</p>
+</section>
+
+<section class="slide" data-n="11">
+ <div class="tag">10 · Despliegue</div>
+ <h2>Un servidor, <em>cero instalaciones</em></h2>
+ <div class="row">
+  <div class="ph">🖼️ Espacio para imagen<br>Diagrama UML de despliegue</div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+   <div class="card"><h3>🖥️ Navegador</h3><p>Cajero y admin por HTTPS. El lector USB actúa como teclado.</p></div>
+   <div class="card" style="--a:var(--amber)"><h3>☕ inventiq.jar</h3><p>JVM Java 21 con servidor web y BD embebida (JDBC en proceso).</p></div>
+   <div class="card" style="--a:var(--vio)"><h3>💬 Twilio</h3><p>REST sobre HTTPS → WhatsApp del administrador. Sandbox en el curso.</p></div>
+  </div>
+ </div>
+</section>
+
+<section class="slide" data-n="12">
+ <div class="tag">11 · Riesgos y supuestos</div>
+ <h2>Lo que <em>podría fallar</em> y cómo lo mitigamos</h2>
+ <div class="g4">
+  <div class="card" style="--a:var(--rose)"><h3>📡 Twilio</h3><p>Caída o latencia → tolerancia a fallos, logs y alerta en dashboard.</p></div>
+  <div class="card" style="--a:var(--rose)"><h3>⚡ Concurrencia</h3><p>Saldos negativos → bloqueo optimista y pruebas de carga.</p></div>
+  <div class="card" style="--a:var(--rose)"><h3>🔌 Hardware</h3><p>Lectores raros → entrada genérica + ingreso manual.</p></div>
+  <div class="card" style="--a:var(--rose)"><h3>🗄️ Esquema BD</h3><p>Cambios destructivos → solo migraciones versionadas.</p></div>
+ </div>
+ <div class="chips"><span class="chip" style="--a:var(--amber)">Un solo punto de venta</span><span class="chip" style="--a:var(--amber)">Plazos de entrega estables</span><span class="chip" style="--a:var(--amber)">Código único por producto</span><span class="chip" style="--a:var(--amber)">Admin con WhatsApp activo</span></div>
+</section>
+
+<section class="slide" data-n="13" style="align-items:center;text-align:center">
+ <div class="tag">12 · Conclusiones</div>
+ <h2>Qué sigue: <em>Sprint 1</em></h2>
+ <div class="g3" style="text-align:left;width:100%">
+  <div class="card"><h3>✅ Decidimos</h3><p>Capas + MVC, dominio puro, BD embebida y despliegue autocontenido.</p></div>
+  <div class="card" style="--a:var(--amber)"><h3>⚖️ Aceptamos</h3><p>Menos escalabilidad a cambio de simplicidad y portabilidad.</p></div>
+  <div class="card" style="--a:var(--vio)"><h3>🚀 Construimos</h3><p>Seguridad, ventas con FIFO y la base del motor de reorden.</p></div>
+ </div>
+ <h2 style="margin-top:10px">¡Gracias! <em>¿Preguntas?</em></h2>
+</section>
+
+</div>
+<div id="nav"><button id="p">←</button><div id="bar"><i></i></div><span id="c"></span><button id="n">→</button><button id="f" title="Pantalla completa (F)">⛶</button><button id="d" title="Guardar como PDF">⬇ PDF</button></div>
+<script>
+const S=[...document.querySelectorAll('.slide')],st=document.getElementById('st');let i=0;
+function fit(){const s=Math.min(innerWidth/1280,innerHeight/720);st.style.transform=`translate(${(innerWidth-1280*s)/2}px,${(innerHeight-720*s)/2}px) scale(${s})`}
+function go(k){i=Math.max(0,Math.min(S.length-1,k));S.forEach((e,j)=>e.classList.toggle('on',j===i));document.querySelector('#bar i').style.width=(i+1)/S.length*100+'%';document.getElementById('c').textContent=(i+1)+' / '+S.length}
+const fs=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{});
+n.onclick=()=>go(i+1);p.onclick=()=>go(i-1);f.onclick=fs;d.onclick=()=>print();
+addEventListener('keydown',e=>{if(['ArrowRight',' ','PageDown'].includes(e.key))go(i+1);if(['ArrowLeft','PageUp'].includes(e.key))go(i-1);if(e.key==='f'||e.key==='F')fs();if(e.key==='Home')go(0);if(e.key==='End')go(S.length-1)});
+let x=0;addEventListener('touchstart',e=>x=e.touches[0].clientX);addEventListener('touchend',e=>{const t=e.changedTouches[0].clientX-x;if(Math.abs(t)>60)go(i+(t<0?1:-1))});
+addEventListener('resize',fit);fit();go(0);
+</script>
+</body>
+</html>
