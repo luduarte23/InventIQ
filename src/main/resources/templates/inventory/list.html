@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title>Inventario · InventIQ</title>
+</head>
+<body>
+<main class="page" th:with="s=${overview.summary()}">
+    <header class="page-header">
+        <div>
+            <h1>Inventario</h1>
+            <p class="page-subtitle">Stock vendible de cada producto y sus lotes, en el orden en que se venden
+                (primero el que vence antes).</p>
+        </div>
+        <div class="page-actions">
+            <a class="btn" th:href="@{/admin/products}">
+                <svg th:replace="~{fragments/icons :: icon('tag')}"></svg>Administrar productos
+            </a>
+        </div>
+    </header>
+
+    <section class="kpi-row" aria-label="Resumen del inventario">
+        <article class="kpi">
+            <p class="kpi-label">Productos activos</p>
+            <p class="kpi-value" th:text="${@fmt.number(s.products())}">21</p>
+            <p class="kpi-note">En el catálogo</p>
+        </article>
+        <article class="kpi">
+            <p class="kpi-label">Unidades vendibles</p>
+            <p class="kpi-value" th:text="${@fmt.number(s.sellableUnits())}">412</p>
+            <p class="kpi-note">Sin contar lotes vencidos</p>
+        </article>
+        <article class="kpi kpi-warning">
+            <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('clock')}"></svg>Lotes por vencer</p>
+            <p class="kpi-value" th:text="${@fmt.number(s.batchesExpiringSoon())}">5</p>
+            <p class="kpi-note">Vencen en 7 días o menos</p>
+        </article>
+        <article class="kpi kpi-critical">
+            <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('alert')}"></svg>Lotes vencidos</p>
+            <p class="kpi-value" th:text="${@fmt.number(s.batchesExpired())}">2</p>
+            <p class="kpi-note">Con unidades que ya no se venden</p>
+        </article>
+        <article class="kpi">
+            <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('pause')}"></svg>Venta pausada</p>
+            <p class="kpi-value" th:text="${@fmt.number(s.pausedProducts())}">1</p>
+            <p class="kpi-note">En inventario, sin vender</p>
+        </article>
+    </section>
+
+    <section class="card">
+        <div class="filter-bar" data-filter-table="inventory-table">
+            <label class="search-field">
+                <svg th:replace="~{fragments/icons :: icon('search')}"></svg>
+                <span class="visually-hidden">Buscar</span>
+                <input type="search" data-filter-text th:value="${query}"
+                       placeholder="Buscar por producto, marca, tipo o código">
+            </label>
+            <label class="select-field">
+                <span class="visually-hidden">Tipo de producto</span>
+                <select data-filter-key="category">
+                    <option value="">Todos los tipos</option>
+                    <option th:each="category : ${categories}" th:value="${category.name()}"
+                            th:text="${category.label()}">Lácteos</option>
+                </select>
+            </label>
+            <label class="select-field">
+                <span class="visually-hidden">Estado</span>
+                <select data-filter-key="status">
+                    <option value="">Todos los estados</option>
+                    <option value="expired">Con lotes vencidos</option>
+                    <option value="soon">Con lotes por vencer</option>
+                    <option value="selling">A la venta</option>
+                    <option value="paused">Venta pausada</option>
+                    <option value="nostock">Sin stock</option>
+                    <option value="reorder">Bajo el punto de reorden</option>
+                </select>
+            </label>
+            <p class="filter-count" data-filter-count aria-live="polite"></p>
+        </div>
+
+        <div class="legend" aria-label="Colores del vencimiento">
+            <span class="legend-item"><span class="swatch swatch-expired"></span>Vencido</span>
+            <span class="legend-item"><span class="swatch swatch-soon"></span>Por vencer (7 días o menos)</span>
+            <span class="legend-item"><span class="swatch swatch-ok"></span>Vigente</span>
+        </div>
+
+        <div class="table-wrap" th:unless="${#lists.isEmpty(overview.rows())}">
+            <table class="data-table" id="inventory-table">
+                <thead>
+                <tr>
+                    <th rowspan="2">Código</th>
+                    <th rowspan="2">Producto</th>
+                    <th rowspan="2">Tipo</th>
+                    <th rowspan="2">Marca</th>
+                    <th rowspan="2">Contenido</th>
+                    <th rowspan="2">Descripción</th>
+                    <th rowspan="2" class="num">Precio</th>
+                    <th rowspan="2" class="num">Vendibles</th>
+                    <th rowspan="2" class="num">Punto de reorden</th>
+                    <th colspan="3" class="th-group">Próximo vencimiento</th>
+                    <th rowspan="2">Estado</th>
+                    <th rowspan="2">Lotes</th>
+                </tr>
+                <tr>
+                    <th class="date-cell">Día</th>
+                    <th class="date-cell">Mes</th>
+                    <th class="date-cell">Año</th>
+                </tr>
+                </thead>
+                <tbody>
+                <th:block th:each="row : ${overview.rows()}"
+                          th:with="p=${row.product()}, next=${row.nextExpiring()}, lotsId=${'lotes-' + row.product().id()}">
+                    <tr data-row
+                        th:classappend="${!p.saleEnabled()} ? 'row-muted'"
+                        th:attr="data-search=${#strings.toLowerCase(p.name() + ' ' + (p.brand() ?: '') + ' ' + p.category().label() + ' ' + p.barcode())},
+                                 data-category=${p.category().name()},
+                                 data-status=${(row.expiredUnits() > 0 ? 'expired ' : '') + (row.expiringSoonUnits() > 0 ? 'soon ' : '') + (p.saleEnabled() ? 'selling ' : 'paused ') + (row.hasStock() ? '' : 'nostock ') + (row.belowReorderPoint() ? 'reorder' : '')},
+                                 data-details=${row.hasStock()} ? ${lotsId}">
+                        <td class="mono" th:text="${p.barcode()}">7702001000012</td>
+                        <td class="cell-strong" th:text="${p.name()}">Yogur de fresa</td>
+                        <td><span class="chip" th:text="${p.category().label()}">Lácteos</span></td>
+                        <td th:text="${p.brand()} ?: '—'">La Pradera</td>
+                        <td class="nowrap" th:text="${p.netContent() != null} ? ${p.netContent().display()} : '—'">200 g</td>
+                        <td><span class="cell-clip" th:text="${p.description()} ?: '—'"
+                                  th:title="${p.description()}">Yogur batido con trozos de fresa.</span></td>
+                        <td class="num" th:text="${@fmt.money(p.salePrice())}">$ 3.200</td>
+                        <td class="num">
+                            <strong th:text="${@fmt.number(row.sellableUnits())}">6</strong>
+                            <span class="sub" th:if="${row.expiredUnits() > 0}"
+                                  th:text="'+' + ${row.expiredUnits()} + ' vencidas'">+2 vencidas</span>
+                        </td>
+                        <td class="num" th:text="${p.reorderPoint()} ?: '—'">—</td>
+                        <th:block th:replace="~{fragments/expiration :: cells(${next})}"></th:block>
+                        <td>
+                            <div class="badges">
+                                <th:block th:replace="~{fragments/expiration :: badge(${next}, ${row.hasStock()})}"></th:block>
+                                <span class="badge badge-info" th:unless="${p.saleEnabled()}">
+                                    <svg th:replace="~{fragments/icons :: icon('pause')}"></svg>Venta pausada
+                                </span>
+                                <span class="badge badge-serious" th:if="${row.belowReorderPoint()}">
+                                    <svg th:replace="~{fragments/icons :: icon('refresh')}"></svg>Bajo el punto de reorden
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-ghost" th:if="${row.hasStock()}"
+                                    data-toggle-details aria-expanded="false" th:attr="aria-controls=${lotsId}">
+                                <span th:text="${@fmt.plural(row.batches().size(), 'lote', 'lotes')}">2 lotes</span>
+                                <svg th:replace="~{fragments/icons :: icon('chevron')}"></svg>
+                            </button>
+                            <span class="muted" th:unless="${row.hasStock()}">—</span>
+                        </td>
+                    </tr>
+                    <tr class="details-row" th:if="${row.hasStock()}" th:id="${lotsId}">
+                        <td colspan="15">
+                            <table class="lots-table">
+                                <caption th:text="'Lotes de ' + ${p.name()} + ', en orden de venta'">Lotes</caption>
+                                <thead>
+                                <tr>
+                                    <th>Orden</th>
+                                    <th>Lote</th>
+                                    <th>Recibido</th>
+                                    <th class="num">Disponibles</th>
+                                    <th class="date-cell">Día</th>
+                                    <th class="date-cell">Mes</th>
+                                    <th class="date-cell">Año</th>
+                                    <th>Estado</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="view, it : ${row.batches()}" class="lot-row"
+                                    th:attr="data-lot=${view.batch().id}">
+                                    <td th:text="${it.count} + 'º'">1º</td>
+                                    <td class="mono" th:text="'#' + ${view.batch().id}">#12</td>
+                                    <td th:text="${@fmt.date(view.batch().receivedAt.toLocalDate())}">6 oct 2026</td>
+                                    <td class="num" th:text="${view.batch().quantityAvailable} + ' de ' + ${view.batch().quantityReceived}">3 de 12</td>
+                                    <th:block th:replace="~{fragments/expiration :: cells(${view})}"></th:block>
+                                    <td><th:block th:replace="~{fragments/expiration :: badge(${view}, true)}"></th:block></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </th:block>
+                </tbody>
+            </table>
+        </div>
+        <p class="empty" data-filter-empty="inventory-table" hidden>Ningún producto coincide con la búsqueda.</p>
+        <p class="empty" th:if="${#lists.isEmpty(overview.rows())}">No hay productos registrados.</p>
+    </section>
+
+    <script th:src="@{/js/table-tools.js}"></script>
+</main>
+</body>
+</html>

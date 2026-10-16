@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title>Producto · InventIQ</title>
+</head>
+<body>
+<main class="page page-narrow" th:with="isEdit=${editing != null}">
+    <nav th:replace="~{fragments/admin-nav :: admin-nav('products')}"></nav>
+    <header class="page-header">
+        <div>
+            <a class="back-link" th:href="@{/admin/products}">
+                <svg th:replace="~{fragments/icons :: icon('arrow-left')}"></svg>Productos
+            </a>
+            <h1 th:text="${isEdit} ? 'Editar producto' : 'Nuevo producto'">Nuevo producto</h1>
+            <p class="page-subtitle" th:text="${isEdit} ? 'El código no se puede cambiar. Si cambias el precio o el costo, el cambio queda en el historial.' : 'Llena los datos del producto. Los campos marcados con * son obligatorios.'">
+                Llena los datos del producto.</p>
+        </div>
+    </header>
+
+    <!-- novalidate: todas las validaciones las hace el servidor, con mensajes en español. -->
+    <form class="form" method="post" th:object="${product}" novalidate autocomplete="off"
+          th:action="${isEdit} ? @{/admin/products/{id}(id=${editing.id()})} : @{/admin/products}">
+        <div class="flash flash-error" th:if="${#fields.hasAnyErrors()}" role="alert">
+            <svg th:replace="~{fragments/icons :: icon('alert')}"></svg>
+            <p class="flash-text">Revisa los campos marcados en rojo.</p>
+        </div>
+
+        <section class="card card-padded form-section">
+            <h2>Identificación</h2>
+            <div class="form-grid">
+                <label class="field" th:classappend="${#fields.hasErrors('barcode')} ? 'has-error'">
+                    <span>Código de barras</span>
+                    <span class="field-inline">
+                        <input type="text" th:field="*{barcode}" readonly class="mono">
+                        <a th:unless="${isEdit}" th:href="@{/admin/products}">Cambiar</a>
+                    </span>
+                    <small class="field-error" th:if="${#fields.hasErrors('barcode')}" th:errors="*{barcode}">Error</small>
+                </label>
+
+                <label class="field" th:classappend="${#fields.hasErrors('name')} ? 'has-error'">
+                    <span>Nombre *</span>
+                    <input type="text" th:field="*{name}" maxlength="150" autofocus placeholder="Ej.: Yogur griego natural">
+                    <small class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Error</small>
+                </label>
+
+                <label class="field" th:classappend="${#fields.hasErrors('category')} ? 'has-error'">
+                    <span>Tipo *</span>
+                    <select th:field="*{category}">
+                        <option value="">Elige el tipo</option>
+                        <option th:each="category : ${categories}" th:value="${category}"
+                                th:text="${category.label()}">Lácteos</option>
+                    </select>
+                    <small class="field-error" th:if="${#fields.hasErrors('category')}" th:errors="*{category}">Error</small>
+                </label>
+
+                <label class="field" th:classappend="${#fields.hasErrors('brand')} ? 'has-error'">
+                    <span>Marca</span>
+                    <input type="text" th:field="*{brand}" maxlength="80" placeholder="Ej.: La Pradera">
+                    <small class="field-error" th:if="${#fields.hasErrors('brand')}" th:errors="*{brand}">Error</small>
+                </label>
+            </div>
+        </section>
+
+        <section class="card card-padded form-section">
+            <h2>Presentación</h2>
+            <div class="form-grid">
+                <div class="field">
+                    <span id="content-label">Contenido (peso, volumen o unidades)</span>
+                    <div class="field-pair" role="group" aria-labelledby="content-label">
+                        <input type="number" th:field="*{netContentAmount}" min="0" step="any" inputmode="decimal"
+                               placeholder="500" aria-label="Cantidad del contenido"
+                               th:classappend="${#fields.hasErrors('netContentAmount')} ? 'input-error'">
+                        <select th:field="*{contentUnit}" aria-label="Unidad del contenido"
+                                th:classappend="${#fields.hasErrors('contentUnit')} ? 'input-error'">
+                            <option value="">Unidad</option>
+                            <option th:each="unit : ${units}" th:value="${unit}"
+                                    th:text="${unit.symbol()} + ' (' + ${unit.label()} + ')'">g (gramos)</option>
+                        </select>
+                    </div>
+                    <small class="field-error" th:if="${#fields.hasErrors('netContentAmount')}" th:errors="*{netContentAmount}">Error</small>
+                    <small class="field-error" th:if="${#fields.hasErrors('contentUnit')}" th:errors="*{contentUnit}">Error</small>
+                </div>
+
+                <label class="field field-span" th:classappend="${#fields.hasErrors('description')} ? 'has-error'">
+                    <span>Descripción</span>
+                    <textarea th:field="*{description}" rows="2" maxlength="500"
+                              placeholder="Ej.: Yogur natural sin azúcar, empaque de vidrio."></textarea>
+                    <small class="field-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">Error</small>
+                </label>
+            </div>
+        </section>
+
+        <section class="card card-padded form-section">
+            <h2>Precios</h2>
+            <div class="form-grid">
+                <label class="field" th:classappend="${#fields.hasErrors('salePrice')} ? 'has-error'">
+                    <span>Precio de venta (pesos) *</span>
+                    <input type="number" th:field="*{salePrice}" min="1" step="1" inputmode="numeric" placeholder="4500">
+                    <small class="field-error" th:if="${#fields.hasErrors('salePrice')}" th:errors="*{salePrice}">Error</small>
+                </label>
+
+                <label class="field" th:classappend="${#fields.hasErrors('cost')} ? 'has-error'">
+                    <span>Costo (pesos) *</span>
+                    <input type="number" th:field="*{cost}" min="1" step="1" inputmode="numeric" placeholder="3300">
+                    <small class="field-error" th:if="${#fields.hasErrors('cost')}" th:errors="*{cost}">Error</small>
+                </label>
+
+                <div class="field">
+                    <span>Margen</span>
+                    <p class="margin-preview" data-margin-preview aria-live="polite">Escribe el precio y el costo para
+                        ver el margen.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="card card-padded form-section">
+            <h2>Abastecimiento</h2>
+            <div class="form-grid">
+                <label class="field" th:classappend="${#fields.hasErrors('supplierId')} ? 'has-error'">
+                    <span>Proveedor</span>
+                    <select th:field="*{supplierId}">
+                        <option value="">Sin proveedor (quedará por revisar)</option>
+                        <option th:each="supplier : ${suppliers}" th:value="${supplier.id()}"
+                                th:text="${supplier.name()}">Lácteos del Valle</option>
+                    </select>
+                    <small class="field-error" th:if="${#fields.hasErrors('supplierId')}" th:errors="*{supplierId}">Error</small>
+                </label>
+
+                <label class="field" th:classappend="${#fields.hasErrors('safetyStock')} ? 'has-error'">
+                    <span>Stock de seguridad (unidades)</span>
+                    <input type="number" th:field="*{safetyStock}" min="0" step="1" inputmode="numeric">
+                    <small class="field-error" th:if="${#fields.hasErrors('safetyStock')}" th:errors="*{safetyStock}">Error</small>
+                </label>
+            </div>
+            <label class="checkbox">
+                <input type="checkbox" th:field="*{perishable}" data-perishable>
+                <span>Es perecedero (sus lotes tienen fecha de vencimiento)</span>
+            </label>
+        </section>
+
+        <section class="card card-padded form-section" th:unless="${isEdit}">
+            <h2>Venta y stock inicial</h2>
+            <label class="checkbox">
+                <input type="checkbox" th:field="*{saleEnabled}">
+                <span>Poner a la venta de inmediato. Desmárcalo si el stock aún no se debe vender
+                    (por ejemplo, si se compró antes de un alza).</span>
+            </label>
+            <p class="hint">El stock inicial crea el primer lote del producto, por ejemplo al cargar lo que ya hay en la
+                tienda. Es opcional.</p>
+            <div class="form-grid">
+                <label class="field" th:classappend="${#fields.hasErrors('initialQuantity')} ? 'has-error'">
+                    <span>Cantidad (unidades)</span>
+                    <input type="number" th:field="*{initialQuantity}" min="0" step="1" inputmode="numeric">
+                    <small class="field-error" th:if="${#fields.hasErrors('initialQuantity')}"
+                           th:errors="*{initialQuantity}">Error</small>
+                </label>
+
+                <label class="field" th:classappend="${#fields.hasErrors('initialExpiration')} ? 'has-error'">
+                    <span>Fecha de vencimiento</span>
+                    <input type="date" th:field="*{initialExpiration}" data-expiration>
+                    <small class="hint" data-expiration-hint>Solo para productos perecederos.</small>
+                    <small class="field-error" th:if="${#fields.hasErrors('initialExpiration')}"
+                           th:errors="*{initialExpiration}">Error</small>
+                </label>
+            </div>
+        </section>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <svg th:replace="~{fragments/icons :: icon('check')}"></svg>
+                <span th:text="${isEdit} ? 'Guardar cambios' : 'Registrar producto'">Registrar producto</span>
+            </button>
+            <a class="btn" th:href="@{/admin/products}">Cancelar</a>
+        </div>
+    </form>
+
+    <script th:src="@{/js/product-form.js}"></script>
+</main>
+</body>
+</html>

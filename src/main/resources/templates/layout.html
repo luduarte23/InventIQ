@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<!--
+  Plantilla base (D1). Cada página la usa así:
+    <html th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+  y define su propio <title> y <main>.
+  La barra lateral se contrae (solo íconos) con el botón de la cabecera; en celulares se abre
+  encima del contenido. El estado se recuerda en el navegador (static/js/app.js).
+-->
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:fragment="layout(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:replace="${title}">InventIQ</title>
+    <script>
+        // Antes de pintar, para que la barra lateral no cambie de tamaño al cargar.
+        document.documentElement.classList.add('js');
+        try {
+            if (localStorage.getItem('inventiq.sidebar') === 'collapsed') {
+                document.documentElement.classList.add('sidebar-collapsed');
+            }
+        } catch (e) { /* almacenamiento bloqueado: se usa la barra expandida */ }
+    </script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body th:with="path=${currentPath} ?: ''">
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+<header class="topbar">
+    <button type="button" class="topbar-toggle" data-sidebar-toggle aria-controls="sidebar" aria-expanded="true"
+            aria-label="Mostrar u ocultar el menú">
+        <svg th:replace="~{fragments/icons :: icon('menu')}"></svg>
+    </button>
+    <a class="brand" th:href="@{/}">
+        <span class="brand-mark"><svg th:replace="~{fragments/icons :: icon('box')}"></svg></span>
+        <span class="brand-name">InventIQ</span>
+    </a>
+    <p class="topbar-date" th:if="${today}" th:text="${@fmt.longDate(today)}">viernes, 16 de octubre de 2026</p>
+</header>
+
+<div class="shell">
+    <aside id="sidebar" class="sidebar" aria-label="Menú principal">
+        <nav class="nav">
+            <a class="nav-link" th:href="@{/}" th:classappend="${path == '/'} ? 'active'"
+               th:attr="aria-current=${path == '/'} ? 'page'" title="Inicio">
+                <svg th:replace="~{fragments/icons :: icon('home')}"></svg>
+                <span class="nav-label">Inicio</span>
+            </a>
+
+            <p class="nav-section">Operación</p>
+            <a class="nav-link" th:href="@{/pos}" th:classappend="${#strings.startsWith(path, '/pos')} ? 'active'"
+               th:attr="aria-current=${#strings.startsWith(path, '/pos')} ? 'page'" title="Ventas">
+                <svg th:replace="~{fragments/icons :: icon('cart')}"></svg>
+                <span class="nav-label">Ventas</span>
+            </a>
+            <a class="nav-link" th:href="@{/inventory}"
+               th:classappend="${#strings.startsWith(path, '/inventory')} ? 'active'"
+               th:attr="aria-current=${#strings.startsWith(path, '/inventory')} ? 'page'" title="Inventario">
+                <svg th:replace="~{fragments/icons :: icon('box')}"></svg>
+                <span class="nav-label">Inventario</span>
+            </a>
+
+            <!-- C y D habilitan estos módulos. -->
+            <p class="nav-section">Abastecimiento</p>
+            <span class="nav-link disabled" title="Reabastecimiento: disponible próximamente">
+                <svg th:replace="~{fragments/icons :: icon('refresh')}"></svg>
+                <span class="nav-label">Reabastecimiento</span>
+                <span class="nav-badge">Pronto</span>
+            </span>
+            <span class="nav-link disabled" title="Pedidos: disponible próximamente">
+                <svg th:replace="~{fragments/icons :: icon('clipboard')}"></svg>
+                <span class="nav-label">Pedidos</span>
+                <span class="nav-badge">Pronto</span>
+            </span>
+
+            <p class="nav-section">Administración</p>
+            <a class="nav-link" th:href="@{/admin/products}"
+               th:classappend="${#strings.startsWith(path, '/admin/products')} ? 'active'"
+               th:attr="aria-current=${#strings.startsWith(path, '/admin/products')} ? 'page'" title="Productos">
+                <svg th:replace="~{fragments/icons :: icon('tag')}"></svg>
+                <span class="nav-label">Productos</span>
+            </a>
+            <a class="nav-link" th:href="@{/admin/history}"
+               th:classappend="${#strings.startsWith(path, '/admin/history')} ? 'active'"
+               th:attr="aria-current=${#strings.startsWith(path, '/admin/history')} ? 'page'"
+               title="Historial y análisis">
+                <svg th:replace="~{fragments/icons :: icon('chart')}"></svg>
+                <span class="nav-label">Historial</span>
+            </a>
+        </nav>
+    </aside>
+    <div class="sidebar-backdrop" data-sidebar-close></div>
+
+    <div class="content" id="contenido">
+        <div th:replace="~{fragments/messages :: messages}"></div>
+        <main th:replace="${content}">
+            <p>Contenido de la página</p>
+        </main>
+    </div>
+</div>
+
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

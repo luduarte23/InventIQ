@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Subpestañas de Administración. Uso: th:replace="~{fragments/admin-nav :: admin-nav('products')}".
+     D agrega aquí Proveedores y Parámetros cuando existan. -->
+<nav th:fragment="admin-nav(active)" class="subnav" aria-label="Administración">
+    <a th:href="@{/admin/products}" th:classappend="${active == 'products'} ? 'active'"
+       th:attr="aria-current=${active == 'products'} ? 'page'">
+        <svg th:replace="~{fragments/icons :: icon('tag')}"></svg> Productos
+    </a>
+    <a th:href="@{/admin/history}" th:classappend="${active == 'history'} ? 'active'"
+       th:attr="aria-current=${active == 'history'} ? 'page'">
+        <svg th:replace="~{fragments/icons :: icon('chart')}"></svg> Historial y análisis
+    </a>
+</nav>
+</body>
+</html>

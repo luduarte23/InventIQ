@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title>Historial · InventIQ</title>
+</head>
+<body>
+<main class="page history" th:with="t=${report.totals()}">
+    <nav th:replace="~{fragments/admin-nav :: admin-nav('history')}"></nav>
+    <header class="page-header">
+        <div>
+            <h1>Historial y análisis</h1>
+            <p class="page-subtitle">Cómo se vende y cómo han cambiado los precios de compra y de venta.</p>
+        </div>
+    </header>
+
+    <!-- ============ Ventas ============ -->
+    <section aria-labelledby="ventas-title" class="page-section">
+        <div class="section-head">
+            <h2 id="ventas-title">Ventas</h2>
+            <!-- El período filtra todo lo que hay debajo, hasta la sección de precios. -->
+            <nav class="segmented" aria-label="Período">
+                <a th:each="d : ${periods}" th:href="@{/admin/history(days=${d}, product=${selectedProduct})}"
+                   th:classappend="${d == period} ? 'active'" th:attr="aria-current=${d == period} ? 'page'"
+                   th:text="'Últimos ' + ${d} + ' días'">Últimos 30 días</a>
+            </nav>
+            <p class="section-note" th:text="${@fmt.date(report.from())} + ' – ' + ${@fmt.date(report.to())}">
+                17 sep 2026 – 16 oct 2026</p>
+        </div>
+
+        <div class="kpi-row" aria-label="Resumen de ventas del período">
+            <article class="kpi">
+                <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('coins')}"></svg>Ingresos</p>
+                <p class="kpi-value" th:text="${@fmt.compactMoney(t.revenue())}" th:title="${@fmt.money(t.revenue())}">$ 4,2 M</p>
+                <p class="kpi-delta" th:if="${report.revenueChange() != null}"
+                   th:classappend="${report.revenueChange().signum() >= 0} ? 'delta-up' : 'delta-down'">
+                    <span th:text="${@fmt.signedPercent(report.revenueChange())}">+8,3 %</span>
+                    <span class="kpi-note" th:text="'vs. los ' + ${period} + ' días anteriores'">vs. los 30 días anteriores</span>
+                </p>
+                <p class="kpi-note" th:unless="${report.revenueChange() != null}">Sin período anterior para comparar</p>
+            </article>
+            <article class="kpi">
+                <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('receipt')}"></svg>Tickets</p>
+                <p class="kpi-value" th:text="${@fmt.number(t.tickets())}">512</p>
+                <p class="kpi-delta" th:if="${report.ticketsChange() != null}"
+                   th:classappend="${report.ticketsChange().signum() >= 0} ? 'delta-up' : 'delta-down'">
+                    <span th:text="${@fmt.signedPercent(report.ticketsChange())}">+4,1 %</span>
+                    <span class="kpi-note" th:text="'vs. los ' + ${period} + ' días anteriores'">vs. anteriores</span>
+                </p>
+                <p class="kpi-note" th:unless="${report.ticketsChange() != null}">Ventas registradas</p>
+            </article>
+            <article class="kpi">
+                <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('box')}"></svg>Unidades vendidas</p>
+                <p class="kpi-value" th:text="${@fmt.number(t.units())}">1.284</p>
+                <p class="kpi-delta" th:if="${report.unitsChange() != null}"
+                   th:classappend="${report.unitsChange().signum() >= 0} ? 'delta-up' : 'delta-down'">
+                    <span th:text="${@fmt.signedPercent(report.unitsChange())}">+6,0 %</span>
+                    <span class="kpi-note" th:text="'vs. los ' + ${period} + ' días anteriores'">vs. anteriores</span>
+                </p>
+                <p class="kpi-note" th:unless="${report.unitsChange() != null}">En el período</p>
+            </article>
+            <article class="kpi">
+                <p class="kpi-label">Ticket promedio</p>
+                <p class="kpi-value" th:text="${@fmt.money(t.averageTicket())}">$ 8.200</p>
+                <p class="kpi-note">Ingresos por venta</p>
+            </article>
+            <article class="kpi">
+                <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('percent')}"></svg>Margen bruto estimado</p>
+                <p class="kpi-value" th:text="${@fmt.percent(t.marginPercent())}">27,4 %</p>
+                <p class="kpi-note" th:text="${@fmt.compactMoney(t.grossMargin())} + ' con el costo vigente en cada venta'">
+                    $ 1,1 M con el costo vigente en cada venta</p>
+            </article>
+        </div>
+
+        <div class="empty-state card card-padded" th:if="${t.tickets() == 0}">
+            <svg th:replace="~{fragments/icons :: icon('chart')}"></svg>
+            <h3>Aún no hay ventas en este período</h3>
+            <p>Cuando el POS registre ventas, aquí verás las tendencias. Con el perfil demo hay 90 días de ventas
+                simuladas.</p>
+        </div>
+
+        <div class="chart-grid" th:if="${t.tickets() > 0}">
+            <figure class="chart-card chart-wide" data-chart="trend">
+                <figcaption class="chart-head">
+                    <div>
+                        <h3 class="chart-title" data-chart-title>Ingresos por día</h3>
+                        <p class="chart-subtitle">Pasa el cursor sobre la línea para ver cada día.</p>
+                    </div>
+                    <div class="chart-tools">
+                        <div class="segmented segmented-sm" role="group" aria-label="Qué mostrar">
+                            <button type="button" data-metric="revenue" aria-pressed="true">Ingresos</button>
+                            <button type="button" data-metric="units" aria-pressed="false">Unidades</button>
+                            <button type="button" data-metric="tickets" aria-pressed="false">Tickets</button>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-ghost" data-table-toggle aria-pressed="false">
+                            <svg th:replace="~{fragments/icons :: icon('table')}"></svg>Ver tabla
+                        </button>
+                    </div>
+                </figcaption>
+                <div class="chart-body chart-h-300">
+                    <canvas role="img" aria-label="Gráfica de línea con las ventas de cada día del período"></canvas>
+                </div>
+                <div class="chart-table" hidden></div>
+            </figure>
+
+            <figure class="chart-card" data-chart="categories">
+                <figcaption class="chart-head">
+                    <div>
+                        <h3 class="chart-title">Ingresos por tipo de producto</h3>
+                        <p class="chart-subtitle">De mayor a menor.</p>
+                    </div>
+                    <div class="chart-tools">
+                        <button type="button" class="btn btn-sm btn-ghost" data-table-toggle aria-pressed="false">
+                            <svg th:replace="~{fragments/icons :: icon('table')}"></svg>Ver tabla
+                        </button>
+                    </div>
+                </figcaption>
+                <div class="chart-body chart-h-320">
+                    <canvas role="img" aria-label="Gráfica de barras horizontales con los ingresos por tipo de producto"></canvas>
+                </div>
+                <div class="chart-table" hidden></div>
+            </figure>
+
+            <figure class="chart-card" data-chart="products">
+                <figcaption class="chart-head">
+                    <div>
+                        <h3 class="chart-title" data-chart-title>Productos más vendidos por ingresos</h3>
+                        <p class="chart-subtitle">Los 10 primeros del período.</p>
+                    </div>
+                    <div class="chart-tools">
+                        <div class="segmented segmented-sm" role="group" aria-label="Ordenar por">
+                            <button type="button" data-metric="revenue" aria-pressed="true">Ingresos</button>
+                            <button type="button" data-metric="units" aria-pressed="false">Unidades</button>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-ghost" data-table-toggle aria-pressed="false">
+                            <svg th:replace="~{fragments/icons :: icon('table')}"></svg>Ver tabla
+                        </button>
+                    </div>
+                </figcaption>
+                <div class="chart-body chart-h-320">
+                    <canvas role="img" aria-label="Gráfica de barras horizontales con los productos más vendidos"></canvas>
+                </div>
+                <div class="chart-table" hidden></div>
+            </figure>
+
+            <figure class="chart-card" data-chart="weekdays">
+                <figcaption class="chart-head">
+                    <div>
+                        <h3 class="chart-title">Ingresos promedio por día de la semana</h3>
+                        <p class="chart-subtitle">Qué días se vende más.</p>
+                    </div>
+                    <div class="chart-tools">
+                        <button type="button" class="btn btn-sm btn-ghost" data-table-toggle aria-pressed="false">
+                            <svg th:replace="~{fragments/icons :: icon('table')}"></svg>Ver tabla
+                        </button>
+                    </div>
+                </figcaption>
+                <div class="chart-body chart-h-280">
+                    <canvas role="img" aria-label="Gráfica de columnas con los ingresos promedio de cada día de la semana"></canvas>
+                </div>
+                <div class="chart-table" hidden></div>
+            </figure>
+
+            <figure class="chart-card" data-chart="timeBands">
+                <figcaption class="chart-head">
+                    <div>
+                        <h3 class="chart-title">Ingresos por franja del día</h3>
+                        <p class="chart-subtitle">Mañana, tarde y noche.</p>
+                    </div>
+                    <div class="chart-tools">
+                        <button type="button" class="btn btn-sm btn-ghost" data-table-toggle aria-pressed="false">
+                            <svg th:replace="~{fragments/icons :: icon('table')}"></svg>Ver tabla
+                        </button>
+                    </div>
+                </figcaption>
+                <div class="chart-body chart-h-280">
+                    <canvas role="img" aria-label="Gráfica de dona con la parte de los ingresos de cada franja del día"></canvas>
+                </div>
+                <div class="chart-table" hidden></div>
+            </figure>
+
+            <figure class="chart-card chart-wide" data-chart="performance">
+                <figcaption class="chart-head">
+                    <div>
+                        <h3 class="chart-title">Margen y rotación por producto</h3>
+                        <p class="chart-subtitle">Cada burbuja es un producto: más a la derecha se vende más rápido, más
+                            arriba deja más margen y su tamaño son los ingresos. Ayuda a decidir qué priorizar al
+                            comprar.</p>
+                    </div>
+                    <div class="chart-tools">
+                        <button type="button" class="btn btn-sm btn-ghost" data-table-toggle aria-pressed="false">
+                            <svg th:replace="~{fragments/icons :: icon('table')}"></svg>Ver tabla
+                        </button>
+                    </div>
+                </figcaption>
+                <div class="chart-body chart-h-340">
+                    <canvas role="img" aria-label="Gráfica de burbujas con el margen y la rotación de cada producto"></canvas>
+                </div>
+                <div class="chart-table" hidden></div>
+            </figure>
+        </div>
+
+        <section class="card" th:if="${t.tickets() > 0}" aria-labelledby="ventas-recientes">
+            <div class="card-head">
+                <h3 id="ventas-recientes">Historial de ventas</h3>
+                <p class="hint" th:text="'Las ' + ${report.recentSales().size()} + ' ventas más recientes del período.'">
+                    Las 30 ventas más recientes del período.</p>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th rowspan="2">Venta</th>
+                        <th colspan="3" class="th-group">Fecha</th>
+                        <th rowspan="2">Hora</th>
+                        <th rowspan="2" class="num">Productos</th>
+                        <th rowspan="2" class="num">Unidades</th>
+                        <th rowspan="2" class="num">Total</th>
+                    </tr>
+                    <tr>
+                        <th class="date-cell">Día</th>
+                        <th class="date-cell">Mes</th>
+                        <th class="date-cell">Año</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="sale : ${report.recentSales()}" th:with="day=${sale.soldAt().toLocalDate()}">
+                        <td class="mono" th:text="'#' + ${sale.saleId()}">#1520</td>
+                        <td class="date-cell" th:text="${#numbers.formatInteger(day.dayOfMonth, 2)}">16</td>
+                        <td class="date-cell" th:text="${@fmt.month(day)}">oct</td>
+                        <td class="date-cell" th:text="${day.year}">2026</td>
+                        <td class="mono" th:text="${@fmt.time(sale.soldAt())}">18:42</td>
+                        <td class="num" th:text="${sale.lines()}">3</td>
+                        <td class="num" th:text="${sale.units()}">4</td>
+                        <td class="num" th:text="${@fmt.money(sale.total())}">$ 15.900</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </section>
+
+    <!-- ============ Precios ============ -->
+    <section id="precios" aria-labelledby="precios-title" class="page-section">
+        <div class="section-head">
+            <h2 id="precios-title">Precios de compra y venta</h2>
+            <p class="section-note" th:text="'Variación en los últimos ' + ${period} + ' días'">Variación en los
+                últimos 30 días</p>
+        </div>
+
+        <section class="card">
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th rowspan="2">Producto</th>
+                        <th rowspan="2">Tipo</th>
+                        <th rowspan="2" class="num">Costo actual</th>
+                        <th rowspan="2" class="num">Precio actual</th>
+                        <th rowspan="2" class="num">Margen</th>
+                        <th rowspan="2" class="num">Variación del costo</th>
+                        <th rowspan="2" class="num">Variación del precio</th>
+                        <th colspan="3" class="th-group">Último cambio</th>
+                        <th rowspan="2"><span class="visually-hidden">Ver evolución</span></th>
+                    </tr>
+                    <tr>
+                        <th class="date-cell">Día</th>
+                        <th class="date-cell">Mes</th>
+                        <th class="date-cell">Año</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="item : ${prices}" th:with="p=${item.product()}, last=${item.lastChange()}"
+                        th:classappend="${p.id() == selectedProduct} ? 'row-highlight'">
+                        <td class="cell-strong" th:text="${p.name()}">Leche entera</td>
+                        <td><span class="chip" th:text="${p.category().label()}">Lácteos</span></td>
+                        <td class="num" th:text="${@fmt.money(p.cost())}">$ 3.300</td>
+                        <td class="num" th:text="${@fmt.money(p.salePrice())}">$ 4.500</td>
+                        <td class="num" th:text="${@fmt.percent(item.marginPercent())}">26,7 %</td>
+                        <td class="num">
+                            <span class="trend" th:if="${item.costChangePercent() != null}"
+                                  th:classappend="${item.costChangePercent().signum() > 0} ? 'trend-up-cost' : ''"
+                                  th:text="${@fmt.signedPercent(item.costChangePercent())}">+4,0 %</span>
+                            <span th:unless="${item.costChangePercent() != null}" class="muted">—</span>
+                        </td>
+                        <td class="num">
+                            <span class="trend" th:if="${item.priceChangePercent() != null}"
+                                  th:text="${@fmt.signedPercent(item.priceChangePercent())}">+3,5 %</span>
+                            <span th:unless="${item.priceChangePercent() != null}" class="muted">—</span>
+                        </td>
+                        <th:block th:if="${last != null}" th:with="day=${last.toLocalDate()}">
+                            <td class="date-cell" th:text="${#numbers.formatInteger(day.dayOfMonth, 2)}">27</td>
+                            <td class="date-cell" th:text="${@fmt.month(day)}">sep</td>
+                            <td class="date-cell" th:text="${day.year}">2026</td>
+                        </th:block>
+                        <td th:if="${last == null}" colspan="3" class="date-cell date-empty">—</td>
+                        <td>
+                            <a class="btn btn-sm btn-ghost" th:href="@{/admin/history(days=${period}, product=${p.id()})} + '#evolucion'"
+                               th:attr="data-select-product=${p.id()}">Ver evolución</a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="section-head" id="evolucion">
+            <h3>Evolución de un producto</h3>
+            <!-- Este selector filtra la gráfica y la tabla de cambios que hay debajo. -->
+            <label class="select-field">
+                <span class="visually-hidden">Producto</span>
+                <select id="price-product" data-price-product>
+                    <option th:each="item : ${prices}" th:value="${item.product().id()}"
+                            th:selected="${item.product().id() == selectedProduct}"
+                            th:text="${item.product().name()}">Leche entera</option>
+                </select>
+            </label>
+        </div>
+
+        <figure class="chart-card" data-chart="prices">
+            <figcaption class="chart-head">
+                <div>
+                    <h3 class="chart-title" data-chart-title>Precio de venta y costo</h3>
+                    <p class="chart-subtitle">Cada escalón es un cambio de precio. La distancia entre las dos líneas
+                        es el margen por unidad.</p>
+                </div>
+                <div class="chart-tools">
+                    <button type="button" class="btn btn-sm btn-ghost" data-table-toggle aria-pressed="false">
+                        <svg th:replace="~{fragments/icons :: icon('table')}"></svg>Ver tabla
+                    </button>
+                </div>
+            </figcaption>
+            <div class="chart-body chart-h-320">
+                <canvas role="img" aria-label="Gráfica escalonada con el precio de venta y el costo del producto en el tiempo"></canvas>
+            </div>
+            <div class="chart-table" hidden></div>
+        </figure>
+    </section>
+
+    <script th:inline="javascript">
+        window.inventiqHistory = /*[[${chartData}]]*/ {};
+    </script>
+    <script th:src="@{/webjars/chart.js/4.5.1/dist/chart.umd.min.js}"></script>
+    <script th:src="@{/js/history-charts.js}"></script>
+</main>
+</body>
+</html>

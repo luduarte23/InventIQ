@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title>Ventas · InventIQ</title>
+</head>
+<body>
+<main class="page pos">
+    <header class="page-header">
+        <div>
+            <h1>Ventas</h1>
+            <p class="page-subtitle">Escanea el producto o escribe su código y presiona Enter.</p>
+        </div>
+    </header>
+
+    <div class="pos-layout">
+        <section class="card card-padded pos-main" aria-label="Venta en curso">
+            <!-- El lector USB escribe el código y envía Enter: eso envía este formulario.
+                 También se puede escribir el código a mano. -->
+            <form class="scan-form" method="post" th:action="@{/pos/scan}" autocomplete="off">
+                <label class="field field-grow">
+                    <span>Código de barras</span>
+                    <input type="text" name="barcode" data-scanner-input autofocus class="input-lg"
+                           inputmode="numeric" placeholder="Escanea o escribe el código y presiona Enter">
+                </label>
+                <label class="field field-small">
+                    <span>Cantidad</span>
+                    <input type="number" name="quantity" value="1" min="1" step="1" class="input-lg">
+                </label>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <svg th:replace="~{fragments/icons :: icon('plus')}"></svg>Agregar
+                </button>
+            </form>
+
+            <p class="hint shortcuts">Atajos: <kbd>Enter</kbd> agrega el código · <kbd>F2</kbd> cierra la venta ·
+                <kbd>Esc</kbd> limpia el campo.</p>
+
+            <div class="table-wrap" th:unless="${cart.empty}">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th class="num">Cantidad</th>
+                        <th class="num">Precio</th>
+                        <th class="num">Subtotal</th>
+                        <th><span class="visually-hidden">Quitar</span></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="line : ${cart.lines()}"
+                        th:classappend="${line.barcode() == lastScanned} ? 'row-highlight'">
+                        <td class="mono" th:text="${line.barcode()}">7702001000012</td>
+                        <td class="cell-strong" th:text="${line.productName()}">Yogur de fresa</td>
+                        <td class="num" th:text="${line.quantity()}">2</td>
+                        <td class="num" th:text="'$ ' + ${#numbers.formatDecimal(line.unitPrice(), 1, 'POINT', 0, 'COMMA')}">$ 3.200</td>
+                        <td class="num" th:text="'$ ' + ${#numbers.formatDecimal(line.subtotal(), 1, 'POINT', 0, 'COMMA')}">$ 6.400</td>
+                        <td class="num">
+                            <form method="post" th:action="@{/pos/remove/{id}(id=${line.productId()})}">
+                                <button type="submit" class="btn btn-sm btn-ghost"
+                                        th:attr="aria-label='Quitar ' + ${line.productName()}">
+                                    <svg th:replace="~{fragments/icons :: icon('close')}"></svg>Quitar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="empty-state" th:if="${cart.empty}">
+                <svg th:replace="~{fragments/icons :: icon('barcode')}"></svg>
+                <p>Aún no hay productos en esta venta.</p>
+            </div>
+        </section>
+
+        <aside class="card card-padded pos-summary" aria-label="Total de la venta">
+            <p class="summary-label">Total de la venta</p>
+            <p class="hero-figure" th:text="${total}">$ 0</p>
+            <p class="summary-units"
+               th:text="${cart.unitCount()} + (${cart.unitCount() == 1} ? ' unidad' : ' unidades') + ' · ' + ${cart.lines().size()} + (${cart.lines().size() == 1} ? ' producto' : ' productos')">
+                0 unidades · 0 productos</p>
+            <form id="close-sale-form" method="post" th:action="@{/pos/close}">
+                <button type="submit" class="btn btn-primary btn-lg btn-block" th:disabled="${cart.empty}">
+                    <svg th:replace="~{fragments/icons :: icon('check')}"></svg>Cerrar venta (F2)
+                </button>
+            </form>
+            <form method="post" th:action="@{/pos/cancel}">
+                <button type="submit" class="btn btn-block" th:disabled="${cart.empty}">Cancelar venta</button>
+            </form>
+            <p class="hint">Los productos se descuentan del lote que vence primero al cerrar la venta.</p>
+        </aside>
+    </div>
+
+    <script th:src="@{/js/scanner-focus.js}"></script>
+</main>
+</body>
+</html>
