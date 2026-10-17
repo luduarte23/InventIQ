@@ -174,3 +174,22 @@ alguien ajeno al equipo arranque el proyecto solo con él:
   marcado para la Entrega 3, porque en la Entrega 2 los mensajes solo van al log.
 - **Verificado**: `.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=demo"` arrancó en
   PowerShell con el perfil `demo` activo, y `/inventory` respondió 200.
+
+### A5: persistencia de Product, Batch y User
+
+La persistencia de Product y Batch venía de la Parte B: entidades separadas del dominio, mappers,
+adaptadores, `@Version` en las dos tablas, y `findAvailableByProduct` en orden FIFO (vence primero,
+luego recibido primero) con sus pruebas en `SalesPersistenceTest` y `CatalogPersistenceTest`. Se
+completó User:
+
+- `UserEntity` (tabla `app_user`, solo lectura), `UserJpaRepository`, `UserMapper` y
+  `UserRepositoryAdapter`, que implementa el puerto `UserRepository` de A2.
+- `SaleRepositoryAdapter` busca al cajero con `UserJpaRepository`. Se eliminaron las dos consultas
+  nativas sobre `app_user` de `SaleJpaRepository` (decisión 7).
+- `UserPersistenceTest` (`@DataJpaTest` con el esquema real de Flyway) prueba:
+  - admin y cajero con sus roles;
+  - contraseñas guardadas como BCrypt, nunca en claro;
+  - usuario inexistente;
+  - usuario inactivo devuelto como tal.
+- Verificado: `./mvnw verify` en verde con 250 pruebas; `ddl-auto=validate` acepta `UserEntity`;
+  las clases nuevas tienen 100 % de líneas cubiertas y las pruebas de ventas siguen pasando.

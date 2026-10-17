@@ -11,21 +11,25 @@ import co.edu.unal.inventiq.domain.model.Sale;
 import co.edu.unal.inventiq.domain.model.SoldItem;
 import co.edu.unal.inventiq.domain.port.SaleRepository;
 import co.edu.unal.inventiq.infrastructure.persistence.entity.SaleEntity;
+import co.edu.unal.inventiq.infrastructure.persistence.entity.UserEntity;
 import co.edu.unal.inventiq.infrastructure.persistence.jpa.SaleJpaRepository;
+import co.edu.unal.inventiq.infrastructure.persistence.jpa.UserJpaRepository;
 import co.edu.unal.inventiq.infrastructure.persistence.mapper.SaleMapper;
 
 @Component
 public class SaleRepositoryAdapter implements SaleRepository {
 
     private final SaleJpaRepository jpa;
+    private final UserJpaRepository users;
 
-    public SaleRepositoryAdapter(SaleJpaRepository jpa) {
+    public SaleRepositoryAdapter(SaleJpaRepository jpa, UserJpaRepository users) {
         this.jpa = jpa;
+        this.users = users;
     }
 
     @Override
     public Sale save(Sale sale) {
-        long cashierId = jpa.findUserIdByUsername(sale.cashierUsername())
+        long cashierId = users.findByUsername(sale.cashierUsername()).map(UserEntity::getId)
                 .orElseThrow(() -> new IllegalStateException("No existe el usuario " + sale.cashierUsername()));
         SaleEntity saved = jpa.save(SaleMapper.toEntity(sale, cashierId));
         return SaleMapper.toDomain(saved, sale.cashierUsername());
@@ -42,6 +46,6 @@ public class SaleRepositoryAdapter implements SaleRepository {
     @Override
     public Optional<Sale> findById(long id) {
         return jpa.findById(id).map(entity -> SaleMapper.toDomain(entity,
-                jpa.findUsernameByUserId(entity.getCashierId()).orElse("?")));
+                users.findById(entity.getCashierId()).map(UserEntity::getUsername).orElse("?")));
     }
 }

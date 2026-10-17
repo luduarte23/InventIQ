@@ -35,8 +35,8 @@ para revisión:
    despliega.
 7. **Cajero sin login.** Mientras no exista A7, las ventas quedan a nombre de `cajero`
    (`PosController.DEFAULT_CASHIER`). Al agregar Spring Security se usará el `Principal` sin cambiar
-   el controlador. Las consultas nativas sobre `app_user` en `SaleJpaRepository` se pueden
-   reemplazar cuando A7 cree la entidad de usuario.
+   el controlador. *Actualizado en A5:* ya existe `UserEntity`, y `SaleRepositoryAdapter` busca al
+   cajero con `UserJpaRepository`. Las consultas nativas sobre `app_user` se eliminaron.
 8. **Datos demo provisionales** (`db/demo/V20261023_1100__datos_demo_pos.sql`): 9 productos y sus
    lotes. C4 decide si los conserva y agrega los 80–100 productos y el historial en migraciones
    posteriores.
@@ -109,6 +109,15 @@ para revisión:
     PowerShell hace falta `.\mvnw.cmd`, y los argumentos `-D...` con puntos deben ir entre comillas.
     Sin comillas, el perfil demo no se aplica y no sale ningún error. El README ya lo explica.
     Corregir `CLAUDE.md` requiere el acuerdo de los cuatro, así que no se tocó.
+
+## Hechas en A5 (persistencia de Product, Batch y User)
+
+29. **`UserEntity` es de solo lectura** y guarda el rol como texto (`ADMIN` | `CASHIER`), igual que
+    `SupplierEntity` con el tipo de pedido mínimo; `UserMapper` lo convierte a `Role`. Crear o
+    cambiar usuarios desde la aplicación no está en el alcance de la Entrega 2. Si se necesita, se
+    agregan la escritura y un método `save` al puerto.
+30. **`findByUsername` devuelve también usuarios inactivos.** Así el login (A7) puede distinguir
+    entre "no existe" e "inactivo"; Spring Security lo rechaza con `User.active()` (`disabled`).
 
 ## Abiertas
 
