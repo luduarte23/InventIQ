@@ -116,3 +116,23 @@ Detalle en [interfaz.md](interfaz.md), [admin-productos.md](admin-productos.md) 
   - `stripTrailingZeros()` mostraba "5.2E+3" en el formulario de edición;
   - una prueba usaba "hoy" en la zona del sistema y no en la de Bogotá (habría fallado en el CI de
     madrugada).
+
+## 17 de octubre de 2026
+
+### A2: modelo de dominio y puertos completos
+
+- **Modelo nuevo** (`domain.model`, Java puro):
+  - compras: `PurchaseOrder`, `OrderLine` y `OrderStatus` con la tabla de transiciones válidas
+    (`DRAFT → APPROVED → SENT → PARTIALLY_RECEIVED → RECEIVED`), aprobación, envío y recepción
+    total o parcial con pendientes visibles (US-05);
+  - `Settings` (presupuesto semanal, ventana de ventas, WhatsApp del admin);
+  - auditoría (`AuditEntry`, `AuditAction`) y alertas (`Alert`, `AlertType`);
+  - usuarios (`User`, `Role`);
+  - pedido mínimo del proveedor (`MinimumOrder`, `MinimumOrderType`); `Supplier` lo incluye.
+- **Excepciones nuevas**: `InvalidOrderTransitionException`, `OrderNotEditableException`,
+  `OrderWithoutSupplierException`, `InvalidReceiptException`, `InvalidSettingsException`.
+- **Puertos nuevos**: `PurchaseOrderRepository`, `SettingsRepository`, `AuditLogRepository`,
+  `AlertRepository`, `UserRepository` y `MessageNotifier`.
+- `SupplierMapper` lee el pedido mínimo de la tabla; el fake de proveedores se ajustó al nuevo campo.
+- Pruebas: 22 nuevas (`OrderStatusTest`, `PurchaseOrderTest`, `AdminModelTest`), 246 en total.
+  Cobertura del dominio: 99,4 % de líneas y 96,6 % de ramas.

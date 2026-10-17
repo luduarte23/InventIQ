@@ -1,6 +1,6 @@
 # Estado actual
 
-*Última actualización: 16 de octubre de 2026.*
+*Última actualización: 17 de octubre de 2026.*
 
 ## Qué funciona
 
@@ -13,6 +13,7 @@
 | Concurrencia en ventas (bloqueo optimista + reintento) | Lista (B7) | Prueba `SalesConcurrencyTest` |
 | **Productos**: registrar por escáner o a mano, editar, pausar o habilitar la venta | Listo (parte de D4) | Administración → Productos |
 | **Historial y análisis**: ventas, precios de compra y venta, 7 gráficas interactivas | Listo | Administración → Historial |
+| Modelo de dominio y puertos completos (A2): pedidos con sus estados, parámetros, auditoría, alertas, usuarios | Listo; sin persistencia de pedidos, parámetros, auditoría ni alertas (D2) | `domain/model`, `domain/port` |
 | Usuarios iniciales (admin y cajero) | En la base, sin login todavía | Tabla `app_user` |
 | Login y roles (FR-01) | Pendiente (A7) | — |
 | ROP y borradores de pedido (FR-03, FR-04) | Pendiente (C) | — |
@@ -55,11 +56,11 @@ del 16 de octubre se actualiza sola al arrancar: Flyway aplica las migraciones n
 
 ## Pruebas
 
-`./mvnw verify`: **224 pruebas en verde**. Cobertura de líneas:
+`./mvnw verify`: **246 pruebas en verde**. Cobertura de líneas:
 
 | Capa | Cobertura | Detalle |
 |---|---|---|
-| `domain` | **99,4 %** | 325/327 líneas; 95,6 % de ramas |
+| `domain` | **99,4 %** | 522/525 líneas; 96,6 % de ramas |
 | `application` | **99,7 %** | 338/339 líneas |
 
 El mínimo exigido es 80 %. El detalle por módulo está en

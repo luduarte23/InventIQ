@@ -15,7 +15,7 @@ public class InMemorySupplierRepository implements SupplierRepository {
     private long nextId = 1;
 
     public Supplier add(String name, boolean active) {
-        Supplier supplier = new Supplier(nextId++, name, "+573000000000", 3, active);
+        Supplier supplier = new Supplier(nextId++, name, "+573000000000", 3, null, active);
         suppliers.put(supplier.id(), supplier);
         return supplier;
     }

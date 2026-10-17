@@ -81,6 +81,26 @@ para revisión:
 20. **Ediciones simultáneas de un producto**: hoy gana la última. Si se quiere detectar el conflicto,
     el formulario debe llevar la versión (`@Version` ya existe en la tabla).
 
+## Hechas en A2 (modelo y puertos completos)
+
+23. **Transiciones del pedido en el dominio.** `OrderStatus.nextStatuses()` define las válidas y
+    `PurchaseOrder` las aplica (`approve`, `markSent`, `receive`). D6 y D7 las usan desde sus
+    servicios; si necesitan otra regla, se agrega aquí con su prueba.
+    - Un pedido "por revisar" (sin proveedor) **no se puede aprobar** hasta asignarle uno.
+    - Solo se recibe un pedido `SENT` o `PARTIALLY_RECEIVED`; no se puede recibir más de lo pendiente.
+    - **"Cerrar" un pedido parcial** (US-05 esc. 2) no tiene estado propio. Si D6 lo necesita,
+      hay que acordar si es un estado nuevo (p. ej. `CLOSED`) o si se marca `RECEIVED` con pendientes.
+24. **`Supplier` cambió de forma**: suma `minimumOrder` (null si no exige mínimo). Quien cree
+    proveedores (D4) debe pasar ese argumento.
+25. **`MessageNotifier.send` devuelve `boolean` y nunca lanza.** Así una falla de Twilio no corta
+    el flujo; quien lo llama crea una alerta `NOTIFICATION_FAILED`. Falta la implementación de log (A6).
+26. **Interfaces de servicios.** El reparto pide "interfaces de puertos y servicios". Los servicios
+    de `application` (como `SalesService`) son clases concretas que reciben los puertos por
+    constructor; no se crearon interfaces para ellos porque solo tendrían una implementación.
+27. **Sin adaptadores todavía** para los puertos nuevos: `UserRepository` es de A5 y
+    `PurchaseOrderRepository`, `SettingsRepository`, `AuditLogRepository` y `AlertRepository` son
+    de D2. Tampoco hay fakes en memoria para ellos; cada letra los agrega con sus pruebas.
+
 ## Abiertas
 
 21. **Restringir `/inventory` y `/admin/**` al rol ADMIN** cuando exista el login (A7).
