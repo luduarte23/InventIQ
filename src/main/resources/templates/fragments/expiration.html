@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Fecha de vencimiento en tres columnas (Día, Mes, Año) con el color de su estado, y la etiqueta
+  del estado con ícono y texto (el color nunca va solo). Se usan en Inventario, Productos e Inicio.
+-->
+
+<!-- Tres celdas <td>. view es un BatchView o null. -->
+<th:block th:fragment="cells(view)">
+    <th:block th:if="${view != null and view.batch().expirationDate != null}"
+              th:with="date=${view.batch().expirationDate}, tone=${'exp-' + @fmt.statusClass(view.status())}">
+        <td class="date-cell" th:classappend="${tone}" th:text="${#numbers.formatInteger(date.dayOfMonth, 2)}">08</td>
+        <td class="date-cell" th:classappend="${tone}" th:text="${@fmt.month(date)}">oct</td>
+        <td class="date-cell" th:classappend="${tone}" th:text="${date.year}">2026</td>
+    </th:block>
+    <td th:unless="${view != null and view.batch().expirationDate != null}" class="date-cell date-empty"
+        colspan="3">—</td>
+</th:block>
+
+<!-- Etiqueta del estado de vencimiento. -->
+<th:block th:fragment="badge(view, hasStock)">
+    <span th:if="${!hasStock}" class="badge">
+        <svg th:replace="~{fragments/icons :: icon('dash')}"></svg>Sin stock
+    </span>
+    <th:block th:if="${hasStock}" th:switch="${view == null ? 'NO_EXPIRATION' : view.status().name()}">
+        <span th:case="'EXPIRED'" class="badge badge-critical">
+            <svg th:replace="~{fragments/icons :: icon('alert')}"></svg><span th:text="${@fmt.expiration(view)}">Vencido</span>
+        </span>
+        <span th:case="'EXPIRING_SOON'" class="badge badge-warning">
+            <svg th:replace="~{fragments/icons :: icon('clock')}"></svg><span th:text="${@fmt.expiration(view)}">Vence en 3 días</span>
+        </span>
+        <span th:case="'OK'" class="badge badge-good">
+            <svg th:replace="~{fragments/icons :: icon('check')}"></svg><span>Vigente</span>
+        </span>
+        <span th:case="*" class="badge">
+            <svg th:replace="~{fragments/icons :: icon('dash')}"></svg><span>Sin vencimiento</span>
+        </span>
+    </th:block>
+</th:block>
+</body>
+</html>

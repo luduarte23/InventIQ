@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Mensajes flash: en el controlador usa redirectAttributes.addFlashAttribute("success" | "error", "texto"). -->
+<div th:fragment="messages" class="flash-stack">
+    <div class="flash flash-success" th:if="${success}" role="status">
+        <svg th:replace="~{fragments/icons :: icon('check')}"></svg>
+        <p class="flash-text" th:text="${success}">Venta registrada.</p>
+        <button type="button" class="flash-close" data-flash-close aria-label="Cerrar mensaje">
+            <svg th:replace="~{fragments/icons :: icon('close')}"></svg>
+        </button>
+    </div>
+    <div class="flash flash-error" th:if="${error}" role="alert">
+        <svg th:replace="~{fragments/icons :: icon('alert')}"></svg>
+        <p class="flash-text" th:text="${error}">No se pudo completar la acción.</p>
+        <button type="button" class="flash-close" data-flash-close aria-label="Cerrar mensaje">
+            <svg th:replace="~{fragments/icons :: icon('close')}"></svg>
+        </button>
+    </div>
+</div>
+</body>
+</html>

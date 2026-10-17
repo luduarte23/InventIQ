@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title>Productos · InventIQ</title>
+</head>
+<body>
+<main class="page">
+    <nav th:replace="~{fragments/admin-nav :: admin-nav('products')}"></nav>
+    <header class="page-header">
+        <div>
+            <h1>Productos</h1>
+            <p class="page-subtitle">Registra productos con el lector o a mano, edítalos y decide cuáles están a la
+                venta.</p>
+        </div>
+    </header>
+
+    <section class="kpi-row" aria-label="Resumen del catálogo">
+        <article class="kpi">
+            <p class="kpi-label">Productos</p>
+            <p class="kpi-value" th:text="${@fmt.number(overview.total())}">21</p>
+            <p class="kpi-note">Activos en el catálogo</p>
+        </article>
+        <article class="kpi kpi-good">
+            <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('check')}"></svg>A la venta</p>
+            <p class="kpi-value" th:text="${@fmt.number(overview.onSale())}">20</p>
+            <p class="kpi-note">El POS los puede vender</p>
+        </article>
+        <article class="kpi">
+            <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('pause')}"></svg>Venta pausada</p>
+            <p class="kpi-value" th:text="${@fmt.number(overview.paused())}">1</p>
+            <p class="kpi-note">En inventario, sin vender</p>
+        </article>
+        <article class="kpi">
+            <p class="kpi-label">Sin proveedor</p>
+            <p class="kpi-value" th:text="${@fmt.number(overview.withoutSupplier())}">2</p>
+            <p class="kpi-note">Quedan "por revisar" en los pedidos</p>
+        </article>
+        <article class="kpi">
+            <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('percent')}"></svg>Margen promedio</p>
+            <p class="kpi-value" th:text="${overview.averageMarginPercent()} != null ? ${overview.averageMarginPercent()} + ' %' : '—'">27 %</p>
+            <p class="kpi-note">Sobre el precio de venta</p>
+        </article>
+    </section>
+
+    <section class="card card-padded scan-card">
+        <div class="scan-card-head">
+            <span class="scan-card-icon"><svg th:replace="~{fragments/icons :: icon('barcode')}"></svg></span>
+            <div>
+                <h2>Agregar producto</h2>
+                <p class="hint">Escanea el producto o escribe su código y presiona Enter. Si es nuevo se abre el
+                    formulario; si ya existe, verás sus datos. Se aceptan códigos estándar: EAN-8, UPC-A, EAN-13 y
+                    GTIN-14.</p>
+            </div>
+        </div>
+        <!-- El lector USB escribe el código y envía Enter. También se puede escribir a mano. -->
+        <form class="scan-form" method="get" th:action="@{/admin/products/new}" autocomplete="off">
+            <label class="field field-grow">
+                <span>Código de barras</span>
+                <input type="text" name="barcode" th:value="${scannedBarcode}" data-scanner-input autofocus
+                       inputmode="numeric" placeholder="Escanea o escribe el código y presiona Enter">
+            </label>
+            <button type="submit" class="btn btn-primary">
+                <svg th:replace="~{fragments/icons :: icon('plus')}"></svg>Continuar
+            </button>
+        </form>
+        <p class="field-error" th:if="${scanError}" role="alert">
+            <svg th:replace="~{fragments/icons :: icon('alert')}"></svg><span th:text="${scanError}">El código no es válido.</span>
+        </p>
+    </section>
+
+    <section class="card card-padded notice" th:if="${existing}" th:with="p=${existing.product()}">
+        <h2>Ese código ya está registrado</h2>
+        <dl class="details">
+            <dt>Código</dt>
+            <dd class="mono" th:text="${p.barcode()}">7702001000012</dd>
+            <dt>Producto</dt>
+            <dd th:text="${p.name()}">Yogur de fresa</dd>
+            <dt>Tipo</dt>
+            <dd th:text="${p.category().label()}">Lácteos</dd>
+            <dt>Marca</dt>
+            <dd th:text="${p.brand()} ?: '—'">La Pradera</dd>
+            <dt>Precio de venta</dt>
+            <dd th:text="${@fmt.money(p.salePrice())}">$ 3.200</dd>
+            <dt>Costo</dt>
+            <dd th:text="${@fmt.money(p.cost())}">$ 2.100</dd>
+            <dt>Proveedor</dt>
+            <dd th:text="${existing.supplierName()} ?: 'Sin proveedor'">Lácteos del Valle</dd>
+            <dt>Venta</dt>
+            <dd th:text="${p.saleEnabled()} ? 'A la venta' : 'Pausada'">A la venta</dd>
+        </dl>
+        <div class="row-actions">
+            <a class="btn btn-sm" th:href="@{/admin/products/{id}/edit(id=${p.id()})}">
+                <svg th:replace="~{fragments/icons :: icon('edit')}"></svg>Editar
+            </a>
+            <a class="btn btn-sm" th:href="@{/inventory(q=${p.barcode()})}">
+                <svg th:replace="~{fragments/icons :: icon('layers')}"></svg>Ver lotes
+            </a>
+        </div>
+        <p class="hint">Las unidades nuevas de un producto que ya existe entran con la recepción de pedidos.</p>
+    </section>
+
+    <section class="card">
+        <div class="filter-bar" data-filter-table="products-table">
+            <label class="search-field">
+                <svg th:replace="~{fragments/icons :: icon('search')}"></svg>
+                <span class="visually-hidden">Buscar</span>
+                <input type="search" data-filter-text placeholder="Buscar por producto, marca, tipo o código">
+            </label>
+            <label class="select-field">
+                <span class="visually-hidden">Tipo de producto</span>
+                <select data-filter-key="category">
+                    <option value="">Todos los tipos</option>
+                    <option th:each="category : ${categories}" th:value="${category.name()}"
+                            th:text="${category.label()}">Lácteos</option>
+                </select>
+            </label>
+            <label class="select-field">
+                <span class="visually-hidden">Venta</span>
+                <select data-filter-key="status">
+                    <option value="">A la venta y pausados</option>
+                    <option value="selling">Solo a la venta</option>
+                    <option value="paused">Solo venta pausada</option>
+                    <option value="nosupplier">Sin proveedor</option>
+                    <option value="expired">Con lotes vencidos</option>
+                    <option value="soon">Con lotes por vencer</option>
+                </select>
+            </label>
+            <p class="filter-count" data-filter-count aria-live="polite"></p>
+        </div>
+
+        <div class="legend" aria-label="Colores del vencimiento">
+            <span class="legend-item"><span class="swatch swatch-expired"></span>Vencido</span>
+            <span class="legend-item"><span class="swatch swatch-soon"></span>Por vencer (7 días o menos)</span>
+            <span class="legend-item"><span class="swatch swatch-ok"></span>Vigente</span>
+        </div>
+
+        <div class="table-wrap" th:unless="${#lists.isEmpty(overview.entries())}">
+            <table class="data-table" id="products-table">
+                <thead>
+                <tr>
+                    <th rowspan="2">Código</th>
+                    <th rowspan="2">Producto</th>
+                    <th rowspan="2">Tipo</th>
+                    <th rowspan="2">Marca</th>
+                    <th rowspan="2">Contenido</th>
+                    <th rowspan="2">Descripción</th>
+                    <th rowspan="2" class="num">Precio · costo</th>
+                    <th rowspan="2" class="num">Margen</th>
+                    <th rowspan="2">Proveedor</th>
+                    <th rowspan="2" class="num">Stock</th>
+                    <th colspan="3" class="th-group">Próximo vencimiento</th>
+                    <th rowspan="2">Venta</th>
+                    <th rowspan="2"><span class="visually-hidden">Acciones</span></th>
+                </tr>
+                <tr>
+                    <th class="date-cell">Día</th>
+                    <th class="date-cell">Mes</th>
+                    <th class="date-cell">Año</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="entry : ${overview.entries()}" data-row
+                    th:with="p=${entry.product()}, row=${stock[entry.product().id()]}, next=${row != null ? row.nextExpiring() : null}"
+                    th:classappend="${(p.barcode() == highlight) ? 'row-highlight' : ''} + ' ' + ${!p.saleEnabled() ? 'row-muted' : ''}"
+                    th:attr="data-search=${#strings.toLowerCase(p.name() + ' ' + (p.brand() ?: '') + ' ' + p.category().label() + ' ' + p.barcode())},
+                             data-category=${p.category().name()},
+                             data-status=${(p.saleEnabled() ? 'selling ' : 'paused ') + (p.supplierId() == null ? 'nosupplier ' : '') + (row != null and row.expiredUnits() > 0 ? 'expired ' : '') + (row != null and row.expiringSoonUnits() > 0 ? 'soon' : '')}">
+                    <td class="mono" th:text="${p.barcode()}">7702001000012</td>
+                    <td class="cell-strong" th:text="${p.name()}">Yogur de fresa</td>
+                    <td><span class="chip" th:text="${p.category().label()}">Lácteos</span></td>
+                    <td th:text="${p.brand()} ?: '—'">La Pradera</td>
+                    <td class="nowrap" th:text="${p.netContent() != null} ? ${p.netContent().display()} : '—'">200 g</td>
+                    <td><span class="cell-clip" th:text="${p.description()} ?: '—'"
+                              th:title="${p.description()}">Yogur batido con trozos de fresa.</span></td>
+                    <td class="num">
+                        <span th:text="${@fmt.money(p.salePrice())}">$ 3.200</span>
+                        <span class="sub" th:text="'costo ' + ${@fmt.money(p.cost())}">costo $ 2.100</span>
+                    </td>
+                    <td class="num" th:text="${entry.marginPercent()} + ' %'">34 %</td>
+                    <td th:text="${entry.supplierName()} ?: 'Sin proveedor'">Lácteos del Valle</td>
+                    <td class="num" th:text="${row != null} ? ${@fmt.number(row.sellableUnits())} : '0'">6</td>
+                    <th:block th:replace="~{fragments/expiration :: cells(${next})}"></th:block>
+                    <td>
+                        <span class="badge badge-good" th:if="${p.saleEnabled()}">
+                            <svg th:replace="~{fragments/icons :: icon('check')}"></svg>A la venta
+                        </span>
+                        <span class="badge badge-info" th:unless="${p.saleEnabled()}">
+                            <svg th:replace="~{fragments/icons :: icon('pause')}"></svg>Pausada
+                        </span>
+                    </td>
+                    <td>
+                        <div class="row-actions">
+                            <a class="btn btn-sm btn-icon" th:href="@{/admin/products/{id}/edit(id=${p.id()})}"
+                               th:title="'Editar ' + ${p.name()}" th:attr="aria-label='Editar ' + ${p.name()}">
+                                <svg th:replace="~{fragments/icons :: icon('edit')}"></svg><span class="btn-label">Editar</span>
+                            </a>
+                            <form method="post" th:action="@{/admin/products/{id}/sale(id=${p.id()})}">
+                                <input type="hidden" name="enabled" th:value="${!p.saleEnabled()}">
+                                <button type="submit" class="btn btn-sm btn-icon" th:if="${p.saleEnabled()}"
+                                        th:title="'Pausar la venta de ' + ${p.name()} + ' (sigue en el inventario)'"
+                                        th:attr="aria-label='Pausar la venta de ' + ${p.name()}">
+                                    <svg th:replace="~{fragments/icons :: icon('pause')}"></svg><span class="btn-label">Pausar venta</span>
+                                </button>
+                                <button type="submit" class="btn btn-sm btn-icon btn-accent" th:unless="${p.saleEnabled()}"
+                                        th:title="'Habilitar la venta de ' + ${p.name()}"
+                                        th:attr="aria-label='Habilitar la venta de ' + ${p.name()}">
+                                    <svg th:replace="~{fragments/icons :: icon('play')}"></svg><span class="btn-label">Habilitar venta</span>
+                                </button>
+                            </form>
+                            <a class="btn btn-sm btn-icon" th:href="@{/inventory(q=${p.barcode()})}"
+                               th:title="'Ver los lotes de ' + ${p.name()}" th:attr="aria-label='Ver los lotes de ' + ${p.name()}">
+                                <svg th:replace="~{fragments/icons :: icon('layers')}"></svg><span class="btn-label">Lotes</span>
+                            </a>
+                            <a class="btn btn-sm btn-icon" th:href="@{/admin/history(product=${p.id()})} + '#precios'"
+                               th:title="'Historial de precios de ' + ${p.name()}"
+                               th:attr="aria-label='Historial de precios de ' + ${p.name()}">
+                                <svg th:replace="~{fragments/icons :: icon('clock')}"></svg><span class="btn-label">Historial</span>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="empty" data-filter-empty="products-table" hidden>Ningún producto coincide con la búsqueda.</p>
+        <p class="empty" th:if="${#lists.isEmpty(overview.entries())}">Aún no hay productos registrados.</p>
+    </section>
+
+    <script th:src="@{/js/scanner-focus.js}"></script>
+    <script th:src="@{/js/table-tools.js}"></script>
+</main>
+</body>
+</html>

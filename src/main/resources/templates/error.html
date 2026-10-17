@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title>Algo salió mal · InventIQ</title>
+</head>
+<body>
+<main class="page page-narrow">
+    <section class="card card-padded empty-state error-state">
+        <svg th:replace="~{fragments/icons :: icon('alert')}"></svg>
+        <p class="error-code" th:text="${status}">404</p>
+        <h1 th:text="${status == 404} ? 'No encontramos esa página' : 'Algo salió mal'">No encontramos esa página</h1>
+        <p th:text="${status == 404} ? 'Puede que el enlace esté incompleto o que la sección aún no exista.' : 'Intenta de nuevo. Si el problema sigue, avísale al equipo.'">
+            Puede que el enlace esté incompleto o que la sección aún no exista.</p>
+        <a class="btn btn-primary" th:href="@{/}">
+            <svg th:replace="~{fragments/icons :: icon('home')}"></svg>Volver al inicio
+        </a>
+    </section>
+</main>
+</body>
+</html>

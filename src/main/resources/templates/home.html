@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title>InventIQ</title>
+</head>
+<body>
+<main class="page">
+    <header class="page-header">
+        <div>
+            <h1>Inicio</h1>
+            <p class="page-subtitle">Lo más importante de hoy en la tienda.</p>
+        </div>
+        <div class="page-actions">
+            <a class="btn btn-primary" th:href="@{/pos}">
+                <svg th:replace="~{fragments/icons :: icon('cart')}"></svg>Nueva venta
+            </a>
+        </div>
+    </header>
+
+    <section class="kpi-row" aria-label="Resumen de hoy">
+        <article class="kpi">
+            <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('coins')}"></svg>Ventas de hoy</p>
+            <p class="kpi-value" th:text="${@fmt.compactMoney(todaySales.revenue())}"
+               th:title="${@fmt.money(todaySales.revenue())}">$ 0</p>
+            <p class="kpi-note" th:text="${@fmt.plural(todaySales.tickets(), 'venta', 'ventas')}">0 ventas</p>
+        </article>
+        <article class="kpi">
+            <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('box')}"></svg>Unidades vendibles</p>
+            <p class="kpi-value" th:text="${@fmt.number(inventory.sellableUnits())}">412</p>
+            <p class="kpi-note" th:text="'En ' + ${@fmt.plural(inventory.products(), 'producto', 'productos')}">En 21 productos</p>
+        </article>
+        <article class="kpi kpi-warning">
+            <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('clock')}"></svg>Lotes por vencer</p>
+            <p class="kpi-value" th:text="${@fmt.number(inventory.batchesExpiringSoon())}">5</p>
+            <p class="kpi-note">Vencen en 7 días o menos</p>
+        </article>
+        <article class="kpi kpi-critical">
+            <p class="kpi-label"><svg th:replace="~{fragments/icons :: icon('alert')}"></svg>Lotes vencidos</p>
+            <p class="kpi-value" th:text="${@fmt.number(inventory.batchesExpired())}">2</p>
+            <p class="kpi-note">Retíralos de la estantería</p>
+        </article>
+    </section>
+
+    <div class="home-grid">
+        <section class="card" aria-labelledby="atencion">
+            <div class="card-head">
+                <h2 id="atencion">Necesitan atención</h2>
+                <a class="btn btn-sm btn-ghost" th:href="@{/inventory}">Ver inventario</a>
+            </div>
+            <div class="table-wrap" th:unless="${#lists.isEmpty(alerts)}">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th rowspan="2">Producto</th>
+                        <th rowspan="2" class="num">Unidades</th>
+                        <th colspan="3" class="th-group">Vence</th>
+                        <th rowspan="2">Estado</th>
+                    </tr>
+                    <tr>
+                        <th class="date-cell">Día</th>
+                        <th class="date-cell">Mes</th>
+                        <th class="date-cell">Año</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="alert : ${alerts}">
+                        <td>
+                            <span class="cell-strong" th:text="${alert.stock().product().name()}">Papas fritas</span>
+                            <span class="sub" th:text="'Lote #' + ${alert.batch().batch().id}">Lote #31</span>
+                        </td>
+                        <td class="num" th:text="${alert.batch().batch().quantityAvailable}">4</td>
+                        <th:block th:replace="~{fragments/expiration :: cells(${alert.batch()})}"></th:block>
+                        <td><th:block th:replace="~{fragments/expiration :: badge(${alert.batch()}, true)}"></th:block></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="empty" th:if="${#lists.isEmpty(alerts)}">Ningún lote vence en los próximos 7 días.</p>
+        </section>
+
+        <div class="home-side">
+            <section class="card card-padded" aria-labelledby="accesos">
+                <h2 id="accesos">Accesos rápidos</h2>
+                <div class="quick-links">
+                    <a class="quick-link" th:href="@{/pos}">
+                        <svg th:replace="~{fragments/icons :: icon('cart')}"></svg>
+                        <span><strong>Registrar una venta</strong><small>Con el lector o a mano</small></span>
+                    </a>
+                    <a class="quick-link" th:href="@{/admin/products}">
+                        <svg th:replace="~{fragments/icons :: icon('barcode')}"></svg>
+                        <span><strong>Agregar un producto</strong><small>Escanéalo para registrarlo</small></span>
+                    </a>
+                    <a class="quick-link" th:href="@{/inventory}">
+                        <svg th:replace="~{fragments/icons :: icon('box')}"></svg>
+                        <span><strong>Revisar el inventario</strong><small>Lotes y vencimientos</small></span>
+                    </a>
+                    <a class="quick-link" th:href="@{/admin/history}">
+                        <svg th:replace="~{fragments/icons :: icon('chart')}"></svg>
+                        <span><strong>Ver el historial</strong><small>Ventas, precios y gráficas</small></span>
+                    </a>
+                </div>
+            </section>
+
+            <section class="card card-padded" aria-labelledby="pausados">
+                <h2 id="pausados">Venta pausada</h2>
+                <p class="hint" th:if="${#lists.isEmpty(paused)}">Todos los productos están a la venta.</p>
+                <ul class="plain-list" th:unless="${#lists.isEmpty(paused)}">
+                    <li th:each="row : ${paused}">
+                        <span class="cell-strong" th:text="${row.product().name()}">Café molido</span>
+                        <span class="sub" th:text="${@fmt.plural(row.sellableUnits(), 'unidad', 'unidades')} + ' en inventario'">60 unidades en inventario</span>
+                    </li>
+                </ul>
+                <a class="btn btn-sm" th:href="@{/admin/products}" th:unless="${#lists.isEmpty(paused)}">
+                    <svg th:replace="~{fragments/icons :: icon('tag')}"></svg>Ir a Productos
+                </a>
+            </section>
+        </div>
+    </div>
+</main>
+</body>
+</html>
