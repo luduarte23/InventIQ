@@ -95,7 +95,8 @@ para revisión:
 24. **`Supplier` cambió de forma**: suma `minimumOrder` (null si no exige mínimo). Quien cree
     proveedores (D4) debe pasar ese argumento.
 25. **`MessageNotifier.send` devuelve `boolean` y nunca lanza.** Así una falla de Twilio no corta
-    el flujo; quien lo llama crea una alerta `NOTIFICATION_FAILED`. Falta la implementación de log (A6).
+    el flujo; quien lo llama crea una alerta `NOTIFICATION_FAILED`. *Actualizado en A6:* ya existe
+    `LogMessageNotifier`.
 26. **Interfaces de servicios.** El reparto pide "interfaces de puertos y servicios". Los servicios
     de `application` (como `SalesService`) son clases concretas que reciben los puertos por
     constructor; no se crearon interfaces para ellos porque solo tendrían una implementación.
@@ -118,6 +119,19 @@ para revisión:
     agregan la escritura y un método `save` al puerto.
 30. **`findByUsername` devuelve también usuarios inactivos.** Así el login (A7) puede distinguir
     entre "no existe" e "inactivo"; Spring Security lo rechaza con `User.active()` (`disabled`).
+
+## Hechas en A6 (notificador en el log)
+
+31. **El notificador de log imita al proveedor real.** Devuelve `false` (y escribe una advertencia)
+    si no hay número, si el número no está en formato internacional (`+` y de 8 a 15 dígitos) o si
+    el mensaje está vacío. Así, en la demo se puede ver el camino de la alerta `NOTIFICATION_FAILED`
+    sin Twilio.
+32. **El número se enmascara en el log** (`+********4567`), porque es un dato personal; el mensaje
+    se escribe completo, porque es lo que se muestra en la demo.
+33. **Cambio a Twilio en la Entrega 3.** `LogMessageNotifier` es un `@Component` sin condiciones.
+    Cuando exista `TwilioMessageNotifier`, uno de los dos debe ser condicional (por ejemplo
+    `@ConditionalOnProperty` según haya credenciales), para que Spring no encuentre dos beans del
+    mismo puerto.
 
 ## Abiertas
 

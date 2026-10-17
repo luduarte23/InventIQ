@@ -193,3 +193,18 @@ completó User:
   - usuario inactivo devuelto como tal.
 - Verificado: `./mvnw verify` en verde con 250 pruebas; `ddl-auto=validate` acepta `UserEntity`;
   las clases nuevas tienen 100 % de líneas cubiertas y las pruebas de ventas siguen pasando.
+
+### A6: notificador de mensajes en el log
+
+- `LogMessageNotifier` (`infrastructure/notification`) implementa `MessageNotifier`. Escribe el
+  mensaje en el log con la etiqueta `[WhatsApp simulado]` en lugar de enviarlo, así que la app
+  arranca sin credenciales. Twilio queda para la Entrega 3.
+- Nunca lanza excepciones. Devuelve `false` si falta el número, si no tiene formato internacional o
+  si el mensaje está vacío, igual que fallaría el proveedor real.
+- El número sale enmascarado en el log (`+********4567`).
+- `FakeMessageNotifier` en `test/.../fakes`, para que C y D prueben sus servicios sin Spring. Guarda
+  los mensajes y se puede poner a fallar.
+- `LogMessageNotifierTest` (sin Spring, con `OutputCaptureExtension`): 7 pruebas que cubren el envío,
+  el enmascarado, la falta de número, el formato inválido y el mensaje vacío.
+- Verificado: `./mvnw verify` en verde con 257 pruebas; `LogMessageNotifier` con 100 % de líneas
+  y ramas.

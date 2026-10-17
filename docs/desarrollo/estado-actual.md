@@ -17,6 +17,7 @@
 | Usuarios iniciales (admin y cajero) | En la base y con repositorio (`UserRepository`, A5); sin login todavía | Tabla `app_user` |
 | CI con cobertura por capa en el PR, umbral de 80 % en `domain` y plantilla de PR (A3) | Listo; falta activar la protección de `main` en GitHub | [fase-1-esqueleto.md](fase-1-esqueleto.md#ci) |
 | README v1 (A4): arranque en cada terminal, solución de problemas, pruebas, flujo de ramas y PR, uso de IA | Listo | `README.md` |
+| Mensajes por WhatsApp simulados en el log (A6); Twilio en la Entrega 3 | Listo | `LogMessageNotifier` |
 | Login y roles (FR-01) | Pendiente (A7) | — |
 | ROP y borradores de pedido (FR-03, FR-04) | Pendiente (C) | — |
 | Inactivar productos, proveedores, parámetros, recepción y aprobación (FR-08, FR-10) | Pendiente (D) | — |
@@ -58,7 +59,7 @@ del 16 de octubre se actualiza sola al arrancar: Flyway aplica las migraciones n
 
 ## Pruebas
 
-`./mvnw verify`: **250 pruebas en verde**. Cobertura de líneas:
+`./mvnw verify`: **257 pruebas en verde**. Cobertura de líneas:
 
 | Capa | Cobertura | Detalle |
 |---|---|---|
