@@ -103,6 +103,13 @@ para revisión:
     `PurchaseOrderRepository`, `SettingsRepository`, `AuditLogRepository` y `AlertRepository` son
     de D2. Tampoco hay fakes en memoria para ellos; cada letra los agrega con sus pruebas.
 
+## Hechas en A4 (README v1)
+
+28. **`CLAUDE.md` tiene la instrucción de Windows incompleta.** Dice "usa `mvnw.cmd`", pero en
+    PowerShell hace falta `.\mvnw.cmd`, y los argumentos `-D...` con puntos deben ir entre comillas.
+    Sin comillas, el perfil demo no se aplica y no sale ningún error. El README ya lo explica.
+    Corregir `CLAUDE.md` requiere el acuerdo de los cuatro, así que no se tocó.
+
 ## Abiertas
 
 21. **Restringir `/inventory` y `/admin/**` al rol ADMIN** cuando exista el login (A7).

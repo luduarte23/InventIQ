@@ -153,3 +153,24 @@ Lo base (JaCoCo con umbral de 80 % en `domain`, ArchUnit y el workflow) venía d
 - Verificado:
   - el script del resumen corrió en local con el reporte real (dominio 99,4 %) y el YAML es válido;
   - `jacoco:check` falla con el umbral subido a 100 % y pasa con el 80 % configurado.
+
+### A4: README v1
+
+El README ya tenía la descripción, el alcance, la arquitectura y los comandos. Se completó para que
+alguien ajeno al equipo arranque el proyecto solo con él:
+
+- **Arranque por terminal**: tabla con Linux/macOS/Git Bash, PowerShell y cmd. Se comprobó que en
+  PowerShell `mvnw.cmd` sin `.\` no se encuentra, y que `-Dspring-boot.run.profiles=demo` sin
+  comillas se parte en el primer punto y arranca **sin** datos demo.
+- **Solución de problemas**: Java ausente, permiso de `mvnw`, puerto ocupado, perfil demo vacío,
+  error de Flyway al cambiar de rama y base en uso.
+- **Pruebas**: la variante de PowerShell, correr `verify` antes del PR y dónde ver la cobertura en
+  el CI.
+- **Flujo de trabajo**: reglas (rama por tarea, revisor distinto cada vez, acuerdo de los 4 para el
+  dominio) y los comandos paso a paso de una tarea.
+- **Declaración de uso de IA**: cómo se usa Claude Code (modo Plan o Manual, nunca hace commits,
+  revisión en PR) y filas nuevas para A2, A3 y A4.
+- **Correcciones**: los puertos ya no son solo `ProductRepository` y `BatchRepository`; Twilio está
+  marcado para la Entrega 3, porque en la Entrega 2 los mensajes solo van al log.
+- **Verificado**: `.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=demo"` arrancó en
+  PowerShell con el perfil `demo` activo, y `/inventory` respondió 200.

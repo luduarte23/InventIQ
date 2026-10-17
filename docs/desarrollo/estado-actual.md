@@ -16,6 +16,7 @@
 | Modelo de dominio y puertos completos (A2): pedidos con sus estados, parámetros, auditoría, alertas, usuarios | Listo; sin persistencia de pedidos, parámetros, auditoría ni alertas (D2) | `domain/model`, `domain/port` |
 | Usuarios iniciales (admin y cajero) | En la base, sin login todavía | Tabla `app_user` |
 | CI con cobertura por capa en el PR, umbral de 80 % en `domain` y plantilla de PR (A3) | Listo; falta activar la protección de `main` en GitHub | [fase-1-esqueleto.md](fase-1-esqueleto.md#ci) |
+| README v1 (A4): arranque en cada terminal, solución de problemas, pruebas, flujo de ramas y PR, uso de IA | Listo | `README.md` |
 | Login y roles (FR-01) | Pendiente (A7) | — |
 | ROP y borradores de pedido (FR-03, FR-04) | Pendiente (C) | — |
 | Inactivar productos, proveedores, parámetros, recepción y aprobación (FR-08, FR-10) | Pendiente (D) | — |

@@ -72,7 +72,7 @@ InventIQ captures sales in real time through barcode scanning with **FIFO invent
 3. **Domain (pure)** - Business rules (FIFO, ROP, MOQ, budget, discounts), with zero infrastructure dependencies; only defines the interfaces it needs (`RepositorioInventario`, `NotificadorMensajes`).
 4. **Infrastructure and Deployment (MOD-06)** - Implements those interfaces: embedded-database persistence, versioned schema migrations, and the Twilio adapter.
 
-In the code, classes use English names. For example, `VentasService` is `SalesService`, `NotificadorMensajes` is `MessageNotifier`, and `RepositorioInventario` is split into the `ProductRepository` and `BatchRepository` ports. See [Project Structure](#project-structure).
+In the code, classes use English names. For example, `VentasService` is `SalesService`, `NotificadorMensajes` is `MessageNotifier`, and `RepositorioInventario` is split into one port per aggregate (`ProductRepository`, `BatchRepository`, `SaleRepository`, `PurchaseOrderRepository`...). See [Project Structure](#project-structure).
 
 **Accepted trade-offs:**
 
@@ -107,7 +107,7 @@ _In development!_ The application already runs as a single self-contained JAR (s
 | Build          | Maven, with wrapper (`./mvnw`) included                                                       |
 | Database       | Embedded H2 stored in a file, schema via Flyway versioned migrations                          |
 | Authentication | Session-based, role-restricted (Administrator / Cashier)                                      |
-| External API   | Twilio WhatsApp Sandbox, behind a `MessageNotifier` adapter interface                         |
+| External API   | Twilio WhatsApp Sandbox, behind a `MessageNotifier` adapter interface. In Deliverable 2 messages are only written to the log; Twilio is enabled in Deliverable 3, only when credentials are configured |
 | Testing        | JUnit 5, AssertJ, ArchUnit, JaCoCo (build fails below 80 % domain coverage)                   |
 | CI             | GitHub Actions: `./mvnw verify` on every pull request                                         |
 
@@ -126,7 +126,12 @@ _In development!_ The application already runs as a single self-contained JAR (s
 
 ## AI Usage Declaration
 
-This project used AI assistance during development. AI-assisted code goes through pull requests like any other code, and every member must be able to explain it.
+This project used AI assistance during development. How we use it:
+
+- Claude Code works in **Plan or Manual** mode, never in automatic editing: it proposes small changes and the member reads and understands the diff before accepting it.
+- Claude Code **never commits or pushes**. Each member commits their own work under their own identity.
+- AI-assisted code goes through pull requests like any other code, with tests and a review by another member, and every member must be able to explain it in the individual defense.
+- AI never replaces the team's decisions: changes to the domain, the ports or the agreements are written down in `docs/desarrollo/decisiones-pendientes.md` for the four members to review.
 
 | Tool        | Parts                                                                                                                          | Purpose                                                    |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
@@ -135,7 +140,9 @@ This project used AI assistance during development. AI-assisted code goes throug
 | Claude Code | Part B: FIFO rule, sales service, persistence, sales and inventory screens, provisional demo data, and their tests             | Implement tasks B1–B8 of the work plan                     |
 | Claude Code | Products: GTIN barcode validation, registration rules, catalog service, screens, and their tests                               | Implement product registration (part of D4)                |
 | Claude Code | UI (sidebar, styles, icons, home), extended catalog, editing and paused sales, history and analytics with charts, demo data generator, and their tests | UI redesign and sales history requested by the team |
-| Claude Code | Development notes in `docs/desarrollo/` and this README                                                                        | Keep track of progress and pending decisions               |
+| Claude Code | Complete domain model and ports: purchase orders and their state transitions, settings, audit log, alerts, users, supplier minimum order, and their tests | Implement task A2 of the work plan                         |
+| Claude Code | CI improvements (coverage summary per layer, test reports) and the pull request template                                      | Implement task A3 of the work plan                         |
+| Claude Code | Development notes in `docs/desarrollo/` and this README (Windows instructions, troubleshooting, workflow)                     | Keep track of progress and pending decisions; task A4      |
 
 The rules Claude Code follows in this repository are in [`CLAUDE.md`](CLAUDE.md).
 
@@ -160,26 +167,49 @@ Check your version with `java -version`.
 ```bash
 git clone https://github.com/luduarte23/InventIQ.git
 cd InventIQ
-./mvnw spring-boot:run          # Linux / macOS / Git Bash
-mvnw.cmd spring-boot:run        # Windows (cmd or PowerShell)
 ```
 
-Open <http://localhost:8080>. The first run downloads the dependencies, so it takes a few minutes.
+Then start it with the command for your terminal:
+
+| Terminal                     | Command                      |
+| ---------------------------- | ---------------------------- |
+| Linux / macOS / Git Bash     | `./mvnw spring-boot:run`     |
+| Windows PowerShell           | `.\mvnw.cmd spring-boot:run` |
+| Windows Command Prompt (cmd) | `mvnw.cmd spring-boot:run`   |
+
+PowerShell needs the `.\` prefix; without it, it answers that `mvnw.cmd` is not recognized.
+
+Open <http://localhost:8080> when the log shows `Started InventiqApplication`. The first run downloads the dependencies, so it takes a few minutes. Stop the application with <kbd>Ctrl</kbd>+<kbd>C</kbd>.
 
 The database is created in `./data/`, and Flyway applies the migrations on startup. To start from scratch, stop the application and delete the `data/` folder.
 
-**With demo data**: 21 products of 11 types, batches that are expired or about to expire, 90 days of simulated sales, and six months of price history.
+**With demo data**: 21 products of 11 types, batches that are expired or about to expire, 90 days of simulated sales, and six months of price history. The demo uses its own database (`./data/inventiq-demo`), so it doesn't mix with the normal one.
 
 ```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=demo
+./mvnw spring-boot:run -Dspring-boot.run.profiles=demo            # Linux / macOS / Git Bash / cmd
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=demo"      # Windows PowerShell
 ```
 
-You can also package the application and run it as a single JAR:
+In PowerShell the quotes are required: without them PowerShell splits the argument at the first dot and the application starts **without** the demo data, with no error.
+
+You can also package the application and run it as a single JAR (in PowerShell use `.\mvnw.cmd`):
 
 ```bash
 ./mvnw package
 java -jar target/inventiq-0.1.0-SNAPSHOT.jar
+java -jar target/inventiq-0.1.0-SNAPSHOT.jar --spring.profiles.active=demo   # with demo data
 ```
+
+### Troubleshooting
+
+| Problem                                                          | Solution                                                                                                     |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `JAVA_HOME not found` or `java` is not recognized                | Install a JDK 21 (for example Eclipse Temurin) and check that `java -version` shows 21 or newer.            |
+| `./mvnw: Permission denied` (Linux / macOS)                      | Run `chmod +x mvnw` once.                                                                                    |
+| `Port 8080 was already in use`                                   | Close the other program, or use another port: add `--server.port=8081` after `java -jar …`.                 |
+| The demo screens are empty                                       | In PowerShell, put the `-D…` argument in quotes (see above), or check that you opened the demo run.         |
+| `Validate failed` / Flyway error after switching branches        | The local database has migrations from another branch. Stop the app and delete `data/` (it is recreated).   |
+| `Database may be already in use`                                 | Another instance of the app is still running with the same database. Stop it first.                         |
 
 ### Screens
 
@@ -206,7 +236,11 @@ Demo barcodes to try, and the current status of every module, are in [`docs/desa
 ./mvnw verify                                      # tests + domain coverage check (fails below 80 %)
 ```
 
-The coverage report is generated at `target/site/jacoco/index.html`.
+In Windows PowerShell use `.\mvnw.cmd` and quote the `-D` arguments, for example `.\mvnw.cmd test "-Dtest=FifoAllocatorTest"`.
+
+Run `./mvnw verify` before opening a pull request: it is the same command CI runs. The tests don't need the application running, and they use in-memory databases, so they never touch `data/`.
+
+The coverage report is generated at `target/site/jacoco/index.html`. In a pull request, the CI run summary shows the coverage per layer, and the full report can be downloaded as the `jacoco-report` artifact.
 
 The business rules (`domain` package) are tested without Spring or a database. An ArchUnit test fails if the domain imports Spring or JPA, or if a layer depends on another one in the wrong direction.
 
@@ -227,11 +261,30 @@ Development notes (in Spanish) are in [`docs/desarrollo/`](docs/desarrollo/READM
 
 ### Development Workflow
 
-- One branch per task, named after the task in the work plan: `feature/B2-fifo`.
-- Each member commits under their own identity.
-- Everything enters `main` through a pull request approved by another member. CI runs `./mvnw verify` on every pull request and posts a coverage table per layer in the run summary; `main` is protected so a pull request cannot be merged until the `CI / build` check passes.
+Rules:
+
+- One branch per task, named after the task ID in the work plan: `feature/B2-fifo`.
+- Each member commits under their own identity (check it with `git config user.name` and `git config user.email`).
+- Everything enters `main` through a pull request approved by another member; nobody pushes to `main` directly. CI runs `./mvnw verify` on every pull request and posts a coverage table per layer in the run summary; `main` is protected so a pull request cannot be merged until the `CI / build` check passes.
+- Each pull request is reviewed by a different member each time, so everyone knows code they didn't write.
 - Pull requests start from a template (`.github/pull_request_template.md`) with the team's checklist.
+- Changing the `domain` package, the port interfaces or `CLAUDE.md` requires the agreement of all four members.
 - Migrations are named with date and time (`V20261022_1430__description.sql`) and are never edited once merged.
+
+Step by step for a task:
+
+```bash
+git switch main
+git pull                                  # start from the latest main
+git switch -c feature/A4-readme           # one branch per task
+# ... work, then check everything passes:
+./mvnw verify
+git add <files>
+git commit -m "docs(A4): ..."             # your own commit, under your identity
+git push -u origin feature/A4-readme
+```
+
+Then open the pull request on GitHub against `main`, fill in the template, ask another member for review, and merge only when CI is green and the review is approved. After merging, delete the branch and `git switch main && git pull` before starting the next task.
 
 ---
 
