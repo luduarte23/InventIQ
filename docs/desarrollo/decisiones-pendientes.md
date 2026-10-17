@@ -9,7 +9,9 @@ puertos requiere el acuerdo de los cuatro integrantes.
    `ACUERDOS.md` no estaba disponible. Hay que compararlo y ajustarlo antes de fusionar la primera
    migración. *Responsable: A.*
 2. **Protección de `main` en GitHub.** Exigir un PR con una aprobación y el check `CI / build`.
-   *Responsable: A.*
+   *Responsable: A.* Los pasos están en
+   [fase-1-esqueleto.md](fase-1-esqueleto.md#protección-de-main-se-configura-en-github-no-en-el-código);
+   falta que el dueño del repositorio los aplique en GitHub.
 
 ## Hechas para la Parte B (trabajo que era de A)
 

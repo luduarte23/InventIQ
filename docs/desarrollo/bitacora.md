@@ -136,3 +136,20 @@ Detalle en [interfaz.md](interfaz.md), [admin-productos.md](admin-productos.md) 
 - `SupplierMapper` lee el pedido mínimo de la tabla; el fake de proveedores se ajustó al nuevo campo.
 - Pruebas: 22 nuevas (`OrderStatusTest`, `PurchaseOrderTest`, `AdminModelTest`), 246 en total.
   Cobertura del dominio: 99,4 % de líneas y 96,6 % de ramas.
+
+### A3: calidad y CI
+
+Lo base (JaCoCo con umbral de 80 % en `domain`, ArchUnit y el workflow) venía de la Fase 1. Se completó así:
+
+- `ci.yml`:
+  - tabla de cobertura por capa en el resumen de cada corrida;
+  - reportes de Surefire como artefacto cuando falla una prueba;
+  - `concurrency` para cancelar corridas viejas del mismo PR;
+  - `permissions: contents: read`, `timeout-minutes` y `workflow_dispatch`.
+- Plantilla de PR (`.github/pull_request_template.md`) con la lista de chequeo del equipo.
+- Pasos para proteger `main` documentados en [fase-1-esqueleto.md](fase-1-esqueleto.md#ci). Se
+  configura en GitHub; falta aplicarla.
+- README: el flujo de trabajo menciona la protección de `main` y la plantilla.
+- Verificado:
+  - el script del resumen corrió en local con el reporte real (dominio 99,4 %) y el YAML es válido;
+  - `jacoco:check` falla con el umbral subido a 100 % y pasa con el 80 % configurado.

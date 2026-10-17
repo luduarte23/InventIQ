@@ -5,10 +5,22 @@ on:
     branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
+
+# Solo lectura del repositorio: el CI no publica nada en GitHub.
+permissions:
+  contents: read
+
+# Si llega un push nuevo al mismo PR, cancela la corrida anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # El nombre del job ("build") es el check que exige la protección de main: "CI / build".
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -24,10 +36,48 @@ jobs:
           chmod +x mvnw
           ./mvnw -B verify
 
+      # Tabla de cobertura por capa en el resumen de la corrida, visible desde el PR.
+      - name: Resumen de cobertura
+        if: always()
+        run: |
+          CSV=target/site/jacoco/jacoco.csv
+          if [ ! -f "$CSV" ]; then
+            echo "No se generó el reporte de cobertura (el build falló antes de las pruebas)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo "### Cobertura de pruebas"
+            echo
+            echo "| Capa | Líneas | Ramas |"
+            echo "|---|---|---|"
+            for layer in domain application infrastructure web; do
+              awk -F, -v layer="$layer" '
+                NR > 1 && $2 ~ ("\\.inventiq\\." layer "(\\.|$)") {
+                  lm += $8; lc += $9; bm += $6; bc += $7
+                }
+                END {
+                  if (lm + lc == 0) exit
+                  branches = (bm + bc == 0) ? "—" : sprintf("%.1f %%", 100 * bc / (bm + bc))
+                  printf "| `%s` | %.1f %% (%d/%d) | %s |\n", layer, 100 * lc / (lm + lc), lc, lm + lc, branches
+                }' "$CSV"
+            done
+            echo
+            echo "El build falla si las líneas de \`domain\` bajan de 80 % (NFR-04)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Reporte de cobertura
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
           path: target/site/jacoco/
+          if-no-files-found: ignore
+
+      # Si una prueba falla, deja su salida para revisarla sin volver a correr el CI.
+      - name: Reportes de pruebas fallidas
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: target/surefire-reports/
           if-no-files-found: ignore

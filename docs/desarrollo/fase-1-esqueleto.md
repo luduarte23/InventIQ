@@ -58,8 +58,30 @@ Las dos reglas se probaron a propósito con una clase que las violaba, y el buil
 ## CI
 
 `.github/workflows/ci.yml` corre `./mvnw -B verify` con Temurin 21 en cada PR y cada push a
-`main`, y publica el reporte de JaCoCo como artefacto. Falta activar en GitHub la protección de
-`main` (PR obligatorio con una aprobación y el check `CI / build` en verde).
+`main` (y a mano desde la pestaña Actions). Además (A3):
+
+- escribe en el resumen de la corrida una tabla de cobertura por capa (`domain`, `application`,
+  `infrastructure`, `web`), que se ve desde el PR sin descargar nada;
+- publica el reporte de JaCoCo como artefacto y, si una prueba falla, también los reportes de
+  Surefire;
+- cancela la corrida anterior si llega otro push al mismo PR y tiene permisos de solo lectura.
+
+Los PR se abren con la plantilla `.github/pull_request_template.md`, que trae la lista de chequeo del
+equipo.
+
+### Protección de `main` (se configura en GitHub, no en el código)
+
+La hace alguien con permiso de administrador del repositorio `luduarte23/InventIQ`:
+
+1. *Settings → Branches → Add branch ruleset* (o *Add classic branch protection rule*), con la rama
+   `main` como objetivo.
+2. Activar **Require a pull request before merging**, con **1** aprobación requerida y
+   *Dismiss stale pull request approvals when new commits are pushed*.
+3. Activar **Require status checks to pass** y agregar el check **`build`** (aparece como
+   `CI / build` después de la primera corrida del workflow). Marcar *Require branches to be up to
+   date before merging*.
+4. Activar **Block force pushes** y dejar la eliminación de `main` bloqueada.
+5. Guardar y comprobarlo: un `git push` directo a `main` debe ser rechazado.
 
 ## Plantilla base
 

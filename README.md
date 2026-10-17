@@ -229,7 +229,8 @@ Development notes (in Spanish) are in [`docs/desarrollo/`](docs/desarrollo/READM
 
 - One branch per task, named after the task in the work plan: `feature/B2-fifo`.
 - Each member commits under their own identity.
-- Everything enters `main` through a pull request approved by another member. CI runs `./mvnw verify` on every pull request.
+- Everything enters `main` through a pull request approved by another member. CI runs `./mvnw verify` on every pull request and posts a coverage table per layer in the run summary; `main` is protected so a pull request cannot be merged until the `CI / build` check passes.
+- Pull requests start from a template (`.github/pull_request_template.md`) with the team's checklist.
 - Migrations are named with date and time (`V20261022_1430__description.sql`) and are never edited once merged.
 
 ---
