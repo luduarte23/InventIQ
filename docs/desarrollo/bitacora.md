@@ -208,3 +208,37 @@ completó User:
   el enmascarado, la falta de número, el formato inválido y el mensaje vacío.
 - Verificado: `./mvnw verify` en verde con 257 pruebas; `LogMessageNotifier` con 100 % de líneas
   y ramas.
+
+### A7: login con dos roles
+
+- `spring-boot-starter-security` y, para pruebas, `spring-boot-starter-security-test`.
+- `infrastructure/security`:
+  - `SecurityConfig`: rutas por rol, login con formulario, salida por POST, CSRF y
+    `BCryptPasswordEncoder`;
+  - `UserAccountDetailsService`: carga los usuarios desde el puerto `UserRepository` (A2/A5). El rol
+    pasa a `ROLE_ADMIN` / `ROLE_CASHIER`, y un usuario inactivo queda deshabilitado.
+- Web:
+  - `LoginController` y `templates/auth/login.html`, con mensajes de error y de sesión cerrada;
+  - `HomeController` redirige al cajero a Ventas;
+  - `NavigationAdvice` pasa a la plantilla el usuario, el rol y si es administrador;
+  - `PosController` usa el usuario de la sesión y ya no tiene `DEFAULT_CASHIER`.
+- Interfaz:
+  - menú por rol en `layout.html` (el cajero solo ve Ventas);
+  - usuario, rol y botón **Salir** en la cabecera;
+  - página 403 con enlace a Ventas;
+  - íconos `user`, `logout` y `lock`, y estilos del login y de la cabecera.
+- Pruebas:
+  - las 4 pruebas de aceptación web usan `@WithMockUser` y `csrf()`;
+  - `LoginAcceptanceTest` (10 pruebas): login real con los usuarios de la migración, redirección por
+    rol, 403 del cajero, menú por rol, contraseña incorrecta, usuario inactivo y salida.
+- Verificado:
+  - `./mvnw verify` en verde con 267 pruebas, y las clases de seguridad con 100 % de líneas;
+  - con la app corriendo (perfil demo) y `curl`:
+    - sin sesión, la app redirige a `/login`;
+    - el admin entra a todo;
+    - el cajero va a `/pos` y recibe 403 en `/inventory`, `/admin/products` y `/admin/history`;
+    - una venta del cajero se cierra;
+    - un POST sin token CSRF da 403;
+    - después de salir hay que volver a entrar;
+    - no aparece la contraseña generada por Spring.
+- No se tomaron capturas: falta revisar a ojo la página de login y la cabecera en el navegador.

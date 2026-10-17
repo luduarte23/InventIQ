@@ -14,11 +14,11 @@
 | **Productos**: registrar por escáner o a mano, editar, pausar o habilitar la venta | Listo (parte de D4) | Administración → Productos |
 | **Historial y análisis**: ventas, precios de compra y venta, 7 gráficas interactivas | Listo | Administración → Historial |
 | Modelo de dominio y puertos completos (A2): pedidos con sus estados, parámetros, auditoría, alertas, usuarios | Listo; sin persistencia de pedidos, parámetros, auditoría ni alertas (D2) | `domain/model`, `domain/port` |
-| Usuarios iniciales (admin y cajero) | En la base y con repositorio (`UserRepository`, A5); sin login todavía | Tabla `app_user` |
+| Usuarios iniciales (admin y cajero) | En la base y con repositorio (`UserRepository`, A5) | Tabla `app_user` |
 | CI con cobertura por capa en el PR, umbral de 80 % en `domain` y plantilla de PR (A3) | Listo; falta activar la protección de `main` en GitHub | [fase-1-esqueleto.md](fase-1-esqueleto.md#ci) |
 | README v1 (A4): arranque en cada terminal, solución de problemas, pruebas, flujo de ramas y PR, uso de IA | Listo | `README.md` |
 | Mensajes por WhatsApp simulados en el log (A6); Twilio en la Entrega 3 | Listo | `LogMessageNotifier` |
-| Login y roles (FR-01) | Pendiente (A7) | — |
+| **Login y roles** (FR-01, A7): sesión, BCrypt, menú por rol; el cajero solo ve Ventas y recibe 403 en el resto | Listo; faltan las pruebas exhaustivas de A8 | `/login` · `admin/admin123`, `cajero/cajero123` |
 | ROP y borradores de pedido (FR-03, FR-04) | Pendiente (C) | — |
 | Inactivar productos, proveedores, parámetros, recepción y aprobación (FR-08, FR-10) | Pendiente (D) | — |
 
@@ -59,7 +59,7 @@ del 16 de octubre se actualiza sola al arrancar: Flyway aplica las migraciones n
 
 ## Pruebas
 
-`./mvnw verify`: **257 pruebas en verde**. Cobertura de líneas:
+`./mvnw verify`: **267 pruebas en verde**. Cobertura de líneas:
 
 | Capa | Cobertura | Detalle |
 |---|---|---|
@@ -74,7 +74,7 @@ El mínimo exigido es 80 %. El detalle por módulo está en
 ## Lo que falta para la Entrega 2
 
 Lo que sigue (tareas del reparto):
-- login con roles (A7–A8);
+- pruebas de seguridad exhaustivas (A8);
 - cálculo del ROP y borradores (C); el historial de ventas para el ROP ya está disponible en
   `SaleRepository.findItemsSoldBetween`;
 - proveedores, parámetros, recepción y aprobación de pedidos (D);

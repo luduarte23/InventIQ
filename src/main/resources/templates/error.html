@@ -6,7 +6,17 @@
 </head>
 <body>
 <main class="page page-narrow">
-    <section class="card card-padded empty-state error-state">
+    <!-- 403: un cajero intentó abrir una pantalla del administrador (A7). -->
+    <section class="card card-padded empty-state error-state" th:if="${status == 403}">
+        <svg th:replace="~{fragments/icons :: icon('lock')}"></svg>
+        <p class="error-code">403</p>
+        <h1>No tienes permiso para ver esta página</h1>
+        <p>Esta sección es solo para el administrador de la tienda.</p>
+        <a class="btn btn-primary" th:href="@{/pos}">
+            <svg th:replace="~{fragments/icons :: icon('cart')}"></svg>Ir a Ventas
+        </a>
+    </section>
+    <section class="card card-padded empty-state error-state" th:unless="${status == 403}">
         <svg th:replace="~{fragments/icons :: icon('alert')}"></svg>
         <p class="error-code" th:text="${status}">404</p>
         <h1 th:text="${status == 404} ? 'No encontramos esa página' : 'Algo salió mal'">No encontramos esa página</h1>

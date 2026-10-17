@@ -12,12 +12,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import jakarta.servlet.RequestDispatcher;
 
 /** Estructura común: barra lateral con el ítem activo, inicio y página de error. */
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:layout;DB_CLOSE_DELAY=-1")
 @AutoConfigureMockMvc
+@WithMockUser(username = "admin", roles = "ADMIN")
 class LayoutAcceptanceTest {
 
     @Autowired

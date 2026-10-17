@@ -37,6 +37,7 @@ para revisión:
    (`PosController.DEFAULT_CASHIER`). Al agregar Spring Security se usará el `Principal` sin cambiar
    el controlador. *Actualizado en A5:* ya existe `UserEntity`, y `SaleRepositoryAdapter` busca al
    cajero con `UserJpaRepository`. Las consultas nativas sobre `app_user` se eliminaron.
+   *Resuelto en A7:* se eliminó `DEFAULT_CASHIER`; la venta queda a nombre de quien inició sesión.
 8. **Datos demo provisionales** (`db/demo/V20261023_1100__datos_demo_pos.sql`): 9 productos y sus
    lotes. C4 decide si los conserva y agrega los 80–100 productos y el historial en migraciones
    posteriores.
@@ -133,9 +134,33 @@ para revisión:
     `@ConditionalOnProperty` según haya credenciales), para que Spring no encuentre dos beans del
     mismo puerto.
 
+## Hechas en A7 (login y roles)
+
+34. **Todo es del administrador salvo lo que se abra a propósito.** `SecurityConfig` deja públicos
+    `/login`, `/error` y los estáticos; `/pos/**` para los dos roles; `/` para cualquier usuario con
+    sesión (al cajero lo redirige a Ventas) y **cualquier otra ruta solo para ADMIN**. Las pantallas
+    nuevas de C (`/replenishment`) y D (`/purchasing`, `/admin/...`) quedan protegidas sin tocar la
+    configuración. Si alguna debe verla el cajero, hay que abrirla en `SecurityConfig`.
+35. **Redirección por rol en el inicio, no en el login.** Después de entrar, todos van a `/` (o a la
+    página que pidieron). `HomeController` manda al cajero a `/pos`. Así, el enlace del logo tampoco
+    le da un 403 al cajero.
+36. **`BCryptPasswordEncoder` directo**, porque los hashes de la migración no tienen prefijo
+    `{bcrypt}` (punto 6). Si se quiere el codificador delegante, hay que hacer una migración que
+    agregue el prefijo.
+37. **CSRF activo** en todos los formularios. Los que usan `th:action` reciben el token solos. Un
+    formulario POST sin `th:action` responde 403, así que C y D deben usar siempre `th:action`.
+38. **Un solo mensaje para cualquier fallo de login** ("Usuario o contraseña incorrectos"), también
+    para usuarios inactivos. Así no se revela qué usuarios existen.
+39. **Pruebas web con usuario simulado.** Las pruebas de aceptación usan
+    `@WithMockUser` y `.with(csrf())` en cada POST. Dos pruebas de inventario de
+    `SalesAcceptanceTest` corren como admin, porque el inventario ya no es del cajero.
+40. **Sesión con los valores de Spring**: 30 minutos de inactividad, nueva sesión al entrar (contra
+    fijación de sesión) y sin "recordarme". Si la tienda quiere sesiones más largas para el cajero,
+    se cambia `server.servlet.session.timeout`.
+
 ## Abiertas
 
-21. **Restringir `/inventory` y `/admin/**` al rol ADMIN** cuando exista el login (A7).
+21. ~~Restringir `/inventory` y `/admin/**` al rol ADMIN~~. *Resuelto en A7* (punto 34).
 22. **Historial de ventas para C.** Ya existe `SaleRepository.findItemsSoldBetween(desde, hasta)`,
     que devuelve las líneas vendidas con su fecha. `SalesVelocityCalculator` puede partir de ahí
     para la ventana de 30 días; falta que C confirme si le sirve tal cual.

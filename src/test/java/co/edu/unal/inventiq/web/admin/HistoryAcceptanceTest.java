@@ -19,10 +19,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 
 /** Administración → Historial con H2 real: indicadores, gráficas, historial de ventas y precios. */
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:history;DB_CLOSE_DELAY=-1")
 @AutoConfigureMockMvc
+@WithMockUser(username = "admin", roles = "ADMIN")
 class HistoryAcceptanceTest {
 
     @Autowired

@@ -13,10 +13,11 @@ import co.edu.unal.inventiq.application.sales.InventoryOverview;
 import co.edu.unal.inventiq.application.sales.InventoryQueryService;
 import co.edu.unal.inventiq.application.sales.ProductStock;
 import co.edu.unal.inventiq.domain.model.ExpirationStatus;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Inicio: las ventas de hoy, los indicadores del inventario y los lotes que necesitan atención.
- * Con el login (A7) el cajero irá directo a Ventas.
+ * Inicio del administrador: las ventas de hoy, los indicadores del inventario y los lotes que
+ * necesitan atención. El cajero no tiene inicio: va directo a Ventas.
  */
 @Controller
 public class HomeController {
@@ -32,7 +33,10 @@ public class HomeController {
     }
 
     @GetMapping("/")
-    public String home(Model model) {
+    public String home(HttpServletRequest request, Model model) {
+        if (!request.isUserInRole(NavigationAdvice.ADMIN_ROLE)) {
+            return "redirect:/pos";
+        }
         InventoryOverview overview = inventory.overview();
         model.addAttribute("inventory", overview.summary());
         model.addAttribute("todaySales", reports.report(1).totals());

@@ -2,6 +2,7 @@ package co.edu.unal.inventiq.web.pos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
@@ -23,6 +24,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 
 /**
  * Prueba de aceptación de US-03 de punta a punta (B8): pantalla de ventas, servicio,
@@ -30,6 +32,7 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:sales-acceptance;DB_CLOSE_DELAY=-1")
 @AutoConfigureMockMvc
+@WithMockUser(username = "cajero", roles = "CASHIER")
 class SalesAcceptanceTest {
 
     @Autowired
@@ -69,7 +72,7 @@ class SalesAcceptanceTest {
                 .andExpect(content().string(Matchers.containsString("Yogur de fresa")))
                 .andExpect(content().string(Matchers.containsString("$ 6.400")));
 
-        mvc.perform(post("/pos/close").session(session))
+        mvc.perform(post("/pos/close").with(csrf()).session(session))
                 .andExpect(redirectedUrl("/pos"))
                 .andExpect(flash().attribute("success", Matchers.containsString("2 unidades")));
 
@@ -83,14 +86,14 @@ class SalesAcceptanceTest {
     void us03Scenario2_unknownBarcodeShowsAMessageAndTheCashierCanContinue() throws Exception {
         scan("7702001000011");
 
-        mvc.perform(post("/pos/scan").session(session).param("barcode", "9999999999999"))
+        mvc.perform(post("/pos/scan").with(csrf()).session(session).param("barcode", "9999999999999"))
                 .andExpect(redirectedUrl("/pos"))
                 .andExpect(flash().attribute("error", Matchers.containsString("no está registrado")));
 
         assertThat(quantityOf(batchExpiringFirst)).isEqualTo(3);
         assertThat(count("sale")).isZero();
 
-        mvc.perform(post("/pos/close").session(session))
+        mvc.perform(post("/pos/close").with(csrf()).session(session))
                 .andExpect(flash().attribute("success", Matchers.containsString("1 unidad,")));
         assertThat(quantityOf(batchExpiringFirst)).isEqualTo(2);
     }
@@ -105,7 +108,7 @@ class SalesAcceptanceTest {
         for (int i = 0; i < 10; i++) {
             scan("770900000000" + i);
         }
-        mvc.perform(post("/pos/close").session(session))
+        mvc.perform(post("/pos/close").with(csrf()).session(session))
                 .andExpect(flash().attribute("success", Matchers.containsString("10 unidades")));
 
         assertThat(count("sale_item")).isEqualTo(10);
@@ -113,24 +116,24 @@ class SalesAcceptanceTest {
 
     @Test
     void emptyEnterDoesNothingAndCancelLeavesTheStockUntouched() throws Exception {
-        mvc.perform(post("/pos/scan").session(session).param("barcode", "   "))
+        mvc.perform(post("/pos/scan").with(csrf()).session(session).param("barcode", "   "))
                 .andExpect(redirectedUrl("/pos"))
                 .andExpect(flash().attributeCount(0));
 
         scan("7702001000011");
-        mvc.perform(post("/pos/cancel").session(session))
+        mvc.perform(post("/pos/cancel").with(csrf()).session(session))
                 .andExpect(flash().attribute("success", Matchers.containsString("cancelada")));
 
         assertThat(quantityOf(batchExpiringFirst)).isEqualTo(3);
-        mvc.perform(post("/pos/close").session(session))
+        mvc.perform(post("/pos/close").with(csrf()).session(session))
                 .andExpect(flash().attribute("error", Matchers.containsString("No hay productos")));
     }
 
     @Test
     void invalidQuantityShowsAMessage() throws Exception {
-        mvc.perform(post("/pos/scan").session(session).param("barcode", "7702001000011").param("quantity", "dos"))
+        mvc.perform(post("/pos/scan").with(csrf()).session(session).param("barcode", "7702001000011").param("quantity", "dos"))
                 .andExpect(flash().attribute("error", Matchers.containsString("número entero")));
-        mvc.perform(post("/pos/scan").session(session).param("barcode", "7702001000011").param("quantity", "0"))
+        mvc.perform(post("/pos/scan").with(csrf()).session(session).param("barcode", "7702001000011").param("quantity", "0"))
                 .andExpect(flash().attribute("error", Matchers.containsString("mayor que cero")));
     }
 
@@ -139,13 +142,14 @@ class SalesAcceptanceTest {
         long yogurtId = jdbc.queryForObject("select id from product where barcode = '7702001000011'", Long.class);
         scan("7702001000011");
 
-        mvc.perform(post("/pos/remove/" + yogurtId).session(session)).andExpect(redirectedUrl("/pos"));
+        mvc.perform(post("/pos/remove/" + yogurtId).with(csrf()).session(session)).andExpect(redirectedUrl("/pos"));
 
         mvc.perform(get("/pos").session(session))
                 .andExpect(content().string(Matchers.containsString("Aún no hay productos")));
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = "ADMIN") // el inventario es solo del administrador
     void inventoryShowsBatchesInFifoOrder() throws Exception {
         String html = mvc.perform(get("/inventory"))
                 .andExpect(status().isOk())
@@ -158,10 +162,11 @@ class SalesAcceptanceTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = "ADMIN") // el inventario es solo del administrador
     void aProductWithPausedSaleIsRejectedAtTheRegisterButStaysInTheInventory() throws Exception {
         jdbc.update("update product set sale_enabled = false where barcode = '7702001000011'");
 
-        mvc.perform(post("/pos/scan").session(session).param("barcode", "7702001000011"))
+        mvc.perform(post("/pos/scan").with(csrf()).session(session).param("barcode", "7702001000011"))
                 .andExpect(flash().attribute("error", Matchers.containsString("no está a la venta")));
 
         mvc.perform(get("/inventory"))
@@ -171,7 +176,7 @@ class SalesAcceptanceTest {
     }
 
     private void scan(String barcode) throws Exception {
-        mvc.perform(post("/pos/scan").session(session).param("barcode", barcode))
+        mvc.perform(post("/pos/scan").with(csrf()).session(session).param("barcode", barcode))
                 .andExpect(redirectedUrl("/pos"))
                 .andExpect(flash().attributeCount(1))
                 .andExpect(flash().attributeExists("lastScanned"));

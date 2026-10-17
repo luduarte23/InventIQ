@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!--
+  Página de login (A7). No usa layout.html porque todavía no hay menú que mostrar.
+  El POST de este formulario lo atiende Spring Security; th:action agrega el token CSRF.
+-->
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Iniciar sesión · InventIQ</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="login-body">
+<main class="login-shell">
+    <div class="login-brand">
+        <span class="brand-mark"><svg th:replace="~{fragments/icons :: icon('box')}"></svg></span>
+        <span class="login-brand-name">InventIQ</span>
+    </div>
+
+    <section class="card card-padded login-card">
+        <h1>Iniciar sesión</h1>
+        <p class="hint">Entra con tu usuario de la tienda.</p>
+
+        <div class="flash flash-error" th:if="${param.error}" role="alert">
+            <svg th:replace="~{fragments/icons :: icon('alert')}"></svg>
+            <p class="flash-text">Usuario o contraseña incorrectos.</p>
+        </div>
+        <div class="flash flash-success" th:if="${param.logout}" role="status">
+            <svg th:replace="~{fragments/icons :: icon('check')}"></svg>
+            <p class="flash-text">Cerraste sesión.</p>
+        </div>
+
+        <form class="form login-form" method="post" th:action="@{/login}">
+            <label class="field">
+                Usuario
+                <input type="text" name="username" autocomplete="username" autofocus required autocapitalize="none"
+                       spellcheck="false">
+            </label>
+            <label class="field">
+                Contraseña
+                <input type="password" name="password" autocomplete="current-password" required>
+            </label>
+            <button type="submit" class="btn btn-primary btn-block btn-lg">
+                <svg th:replace="~{fragments/icons :: icon('lock')}"></svg>Entrar
+            </button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
@@ -25,6 +26,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.security.test.context.support.WithMockUser;
 
 /**
  * Administración → Productos de punta a punta: escanear o escribir el código, registrar el
@@ -32,6 +34,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  */
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:admin-products;DB_CLOSE_DELAY=-1")
 @AutoConfigureMockMvc
+@WithMockUser(username = "admin", roles = "ADMIN")
 class ProductAdminAcceptanceTest {
 
     private static final String NEW_CODE = "7702001000029";
@@ -136,8 +139,8 @@ class ProductAdminAcceptanceTest {
         assertThat(count("price_history")).isEqualTo(1);
 
         MockHttpSession cashier = new MockHttpSession();
-        mvc.perform(post("/pos/scan").session(cashier).param("barcode", NEW_CODE));
-        mvc.perform(post("/pos/close").session(cashier))
+        mvc.perform(post("/pos/scan").with(csrf()).session(cashier).param("barcode", NEW_CODE));
+        mvc.perform(post("/pos/close").with(csrf()).session(cashier))
                 .andExpect(flash().attribute("success", containsString("1 unidad")));
         assertThat(jdbc.queryForObject("select quantity_available from batch", Integer.class)).isEqualTo(11);
     }
@@ -269,26 +272,26 @@ class ProductAdminAcceptanceTest {
         mvc.perform(registerProduct("initialQuantity", "10", "initialExpiration", today.plusDays(30).toString()));
         long id = jdbc.queryForObject("select id from product where barcode = ?", Long.class, NEW_CODE);
 
-        mvc.perform(post("/admin/products/" + id + "/sale").param("enabled", "false"))
+        mvc.perform(post("/admin/products/" + id + "/sale").with(csrf()).param("enabled", "false"))
                 .andExpect(redirectedUrl("/admin/products"))
                 .andExpect(flash().attribute("success", containsString("Sigue en el inventario")));
 
         MockHttpSession cashier = new MockHttpSession();
-        mvc.perform(post("/pos/scan").session(cashier).param("barcode", NEW_CODE))
+        mvc.perform(post("/pos/scan").with(csrf()).session(cashier).param("barcode", NEW_CODE))
                 .andExpect(flash().attribute("error", containsString("no está a la venta")));
         mvc.perform(get("/inventory"))
                 .andExpect(content().string(containsString("Venta pausada")))
                 .andExpect(content().string(containsString("Leche deslactosada")));
 
-        mvc.perform(post("/admin/products/" + id + "/sale").param("enabled", "true"))
+        mvc.perform(post("/admin/products/" + id + "/sale").with(csrf()).param("enabled", "true"))
                 .andExpect(flash().attribute("success", containsString("ya se puede vender")));
-        mvc.perform(post("/pos/scan").session(cashier).param("barcode", NEW_CODE))
+        mvc.perform(post("/pos/scan").with(csrf()).session(cashier).param("barcode", NEW_CODE))
                 .andExpect(flash().attributeExists("lastScanned"));
     }
 
     @Test
     void pausingAProductThatDoesNotExistShowsAnError() throws Exception {
-        mvc.perform(post("/admin/products/999999/sale").param("enabled", "false"))
+        mvc.perform(post("/admin/products/999999/sale").with(csrf()).param("enabled", "false"))
                 .andExpect(redirectedUrl("/admin/products"))
                 .andExpect(flash().attribute("error", containsString("no existe")));
     }
@@ -300,11 +303,11 @@ class ProductAdminAcceptanceTest {
     private MockHttpServletRequestBuilder registerProduct(String... overrides) {
         Map<String, String> fields = validFields();
         fields.put("barcode", NEW_CODE);
-        return withFields(post("/admin/products"), fields, overrides);
+        return withFields(post("/admin/products").with(csrf()), fields, overrides);
     }
 
     private MockHttpServletRequestBuilder editProduct(long id, String... overrides) {
-        return withFields(post("/admin/products/" + id), validFields(), overrides);
+        return withFields(post("/admin/products/" + id).with(csrf()), validFields(), overrides);
     }
 
     private Map<String, String> validFields() {

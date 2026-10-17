@@ -106,7 +106,7 @@ _In development!_ The application already runs as a single self-contained JAR (s
 | Charts         | Chart.js, served from the JAR as a WebJar (no internet needed)                                |
 | Build          | Maven, with wrapper (`./mvnw`) included                                                       |
 | Database       | Embedded H2 stored in a file, schema via Flyway versioned migrations                          |
-| Authentication | Session-based, role-restricted (Administrator / Cashier)                                      |
+| Authentication | Spring Security: session login, BCrypt passwords, CSRF protection, two roles (Administrator / Cashier) |
 | External API   | Twilio WhatsApp Sandbox, behind a `MessageNotifier` adapter interface. In Deliverable 2 messages are only written to the log; Twilio is enabled in Deliverable 3, only when credentials are configured |
 | Testing        | JUnit 5, AssertJ, ArchUnit, JaCoCo (build fails below 80 % domain coverage)                   |
 | CI             | GitHub Actions: `./mvnw verify` on every pull request                                         |
@@ -142,6 +142,7 @@ This project used AI assistance during development. How we use it:
 | Claude Code | UI (sidebar, styles, icons, home), extended catalog, editing and paused sales, history and analytics with charts, demo data generator, and their tests | UI redesign and sales history requested by the team |
 | Claude Code | Complete domain model and ports: purchase orders and their state transitions, settings, audit log, alerts, users, supplier minimum order, and their tests | Implement task A2 of the work plan                         |
 | Claude Code | CI improvements (coverage summary per layer, test reports) and the pull request template                                      | Implement task A3 of the work plan                         |
+| Claude Code | Login with two roles: Spring Security configuration, user loading, login page, menu by role, 403 page, and their tests | Implement task A7 of the work plan                         |
 | Claude Code | Development notes in `docs/desarrollo/` and this README (Windows instructions, troubleshooting, workflow)                     | Keep track of progress and pending decisions; task A4      |
 
 The rules Claude Code follows in this repository are in [`CLAUDE.md`](CLAUDE.md).
@@ -206,14 +207,23 @@ java -jar target/inventiq-0.1.0-SNAPSHOT.jar --spring.profiles.active=demo   # w
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `JAVA_HOME not found` or `java` is not recognized                | Install a JDK 21 (for example Eclipse Temurin) and check that `java -version` shows 21 or newer.            |
 | `./mvnw: Permission denied` (Linux / macOS)                      | Run `chmod +x mvnw` once.                                                                                    |
-| `Port 8080 was already in use`                                   | Close the other program, or use another port: add `--server.port=8081` after `java -jar …`.                 |
+| `Port 8080 was already in use`                                   | Another program uses port 8080 (on Windows, `Get-NetTCPConnection -LocalPort 8080` tells you which one). Use another port: with Maven add `"-Dspring-boot.run.arguments=--server.port=8081"` (quotes required in PowerShell); with the JAR add `--server.port=8081`. Then open <http://localhost:8081>. |
 | The demo screens are empty                                       | In PowerShell, put the `-D…` argument in quotes (see above), or check that you opened the demo run.         |
 | `Validate failed` / Flyway error after switching branches        | The local database has migrations from another branch. Stop the app and delete `data/` (it is recreated).   |
 | `Database may be already in use`                                 | Another instance of the app is still running with the same database. Stop it first.                         |
 
 ### Screens
 
-The user interface is in Spanish. All screens are reachable from the sidebar.
+The user interface is in Spanish. Every screen asks you to sign in first at `/login`:
+
+| User     | Password    | Role          | What they see                                            |
+| -------- | ----------- | ------------- | -------------------------------------------------------- |
+| `admin`  | `admin123`  | Administrator | Every screen                                             |
+| `cajero` | `cajero123` | Cashier       | Only Ventas (POS); any other screen answers 403 Forbidden |
+
+Change these passwords if the application is deployed anywhere other than your own computer. Sign out with the **Salir** button in the top bar.
+
+The administrator reaches every screen from the sidebar:
 
 | Screen       | URL               | What it does                                                                      |
 | ------------ | ----------------- | --------------------------------------------------------------------------------- |
@@ -223,7 +233,6 @@ The user interface is in Spanish. All screens are reachable from the sidebar.
 | Productos    | `/admin/products` | Register products by scanner or by hand, edit them, pause or resume their sale    |
 | Historial    | `/admin/history`  | Sales history, purchase and sale prices, and interactive charts                   |
 
-Initial users, for when login is ready: `admin` / `admin123` and `cajero` / `cajero123`.
 
 Demo barcodes to try, and the current status of every module, are in [`docs/desarrollo/estado-actual.md`](docs/desarrollo/estado-actual.md).
 

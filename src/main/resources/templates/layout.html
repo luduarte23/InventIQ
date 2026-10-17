@@ -36,12 +36,27 @@
         <span class="brand-name">InventIQ</span>
     </a>
     <p class="topbar-date" th:if="${today}" th:text="${@fmt.longDate(today)}">viernes, 16 de octubre de 2026</p>
+    <div class="topbar-user" th:if="${currentUser}">
+        <span class="topbar-user-name">
+            <svg th:replace="~{fragments/icons :: icon('user')}"></svg>
+            <span th:text="${currentUser}">admin</span>
+            <span class="topbar-user-role" th:text="${currentRoleLabel}">Administrador</span>
+        </span>
+        <!-- Cerrar sesión es un POST (con token CSRF), nunca un enlace. -->
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="topbar-logout" title="Cerrar sesión">
+                <svg th:replace="~{fragments/icons :: icon('logout')}"></svg>
+                <span>Salir</span>
+            </button>
+        </form>
+    </div>
 </header>
 
 <div class="shell">
     <aside id="sidebar" class="sidebar" aria-label="Menú principal">
+        <!-- El cajero solo ve Ventas; el resto del menú es del administrador (A7). -->
         <nav class="nav">
-            <a class="nav-link" th:href="@{/}" th:classappend="${path == '/'} ? 'active'"
+            <a class="nav-link" th:if="${isAdmin}" th:href="@{/}" th:classappend="${path == '/'} ? 'active'"
                th:attr="aria-current=${path == '/'} ? 'page'" title="Inicio">
                 <svg th:replace="~{fragments/icons :: icon('home')}"></svg>
                 <span class="nav-label">Inicio</span>
@@ -53,6 +68,7 @@
                 <svg th:replace="~{fragments/icons :: icon('cart')}"></svg>
                 <span class="nav-label">Ventas</span>
             </a>
+            <th:block th:if="${isAdmin}">
             <a class="nav-link" th:href="@{/inventory}"
                th:classappend="${#strings.startsWith(path, '/inventory')} ? 'active'"
                th:attr="aria-current=${#strings.startsWith(path, '/inventory')} ? 'page'" title="Inventario">
@@ -87,6 +103,7 @@
                 <svg th:replace="~{fragments/icons :: icon('chart')}"></svg>
                 <span class="nav-label">Historial</span>
             </a>
+            </th:block>
         </nav>
     </aside>
     <div class="sidebar-backdrop" data-sidebar-close></div>

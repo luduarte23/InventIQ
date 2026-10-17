@@ -29,9 +29,6 @@ public class PosController {
 
     static final String CART_ATTRIBUTE = "posCart";
 
-    /** Hasta que exista el login (A7) las ventas quedan a nombre del cajero inicial. */
-    static final String DEFAULT_CASHIER = "cajero";
-
     private final SalesService sales;
 
     public PosController(SalesService sales) {
@@ -107,7 +104,8 @@ public class PosController {
         return quantity.isBlank() ? 1 : Integer.parseInt(quantity.strip());
     }
 
+    /** La venta queda a nombre de quien inició sesión; /pos exige sesión, así que nunca es null. */
     private static String cashier(Principal principal) {
-        return principal != null ? principal.getName() : DEFAULT_CASHIER;
+        return principal.getName();
     }
 }
