@@ -242,3 +242,31 @@ completó User:
     - después de salir hay que volver a entrar;
     - no aparece la contraseña generada por Spring.
 - No se tomaron capturas: falta revisar a ojo la página de login y la cabecera en el navegador.
+
+### A8: pruebas de seguridad
+
+A7 ya probaba el login y el 403 del cajero en tres pantallas GET. A8 extiende la prueba a todas las
+rutas y a las contraseñas:
+
+- `web/SecurityRoutesTest` (6 pruebas): lee de Spring MVC todas las rutas registradas (hoy 15,
+  incluidas las POST de productos y de ventas) y comprueba que:
+  - sin sesión, todas mandan a `/login`, salvo `/login` y `/error`;
+  - el cajero recibe 403 en todas las de administración;
+  - el cajero puede usar todas las de ventas;
+  - el administrador llega a todas;
+  - ningún POST pasa sin token CSRF, ni siquiera el del administrador.
+
+  Una prueba extra confirma que el barrido sí encuentra las pantallas conocidas, para que no pase en
+  vacío.
+- `infrastructure/security/PasswordStorageTest` (4):
+  - el codificador es BCrypt;
+  - todos los usuarios guardados tienen un hash BCrypt válido con costo de al menos 10;
+  - los hashes de `admin` y `cajero` coinciden con sus contraseñas documentadas y con nada más;
+  - la contraseña nunca aparece en claro;
+  - la misma contraseña da un hash distinto cada vez (sal).
+- `infrastructure/security/UserAccountDetailsServiceTest` (5, sin Spring): los roles pasan a
+  `ROLE_ADMIN` y `ROLE_CASHIER`, el usuario inactivo queda deshabilitado, el usuario inexistente se
+  rechaza y se entrega el hash tal cual.
+- **Prueba de sabotaje**: se abrió `/inventory` al cajero en `SecurityConfig` a propósito, y
+  `SecurityRoutesTest` falló señalando `GET /inventory -> 200`. Después se restauró el archivo.
+- Verificado: `./mvnw verify` en verde con 282 pruebas; cobertura del dominio, 99,4 %.

@@ -158,6 +158,16 @@ para revisión:
     fijación de sesión) y sin "recordarme". Si la tienda quiere sesiones más largas para el cajero,
     se cambia `server.servlet.session.timeout`.
 
+## Hechas en A8 (pruebas de seguridad)
+
+41. **El barrido de seguridad lee las rutas de Spring, no de una lista.** `SecurityRoutesTest` revisa
+    cada ruta registrada con cuatro casos: sin sesión, cajero, administrador y POST sin CSRF. Una
+    pantalla nueva de C o D queda probada sola. Si una pantalla nueva debe verla el cajero, hay que
+    cambiar **dos** cosas: `SecurityConfig` y el método `isCashierRoute` de la prueba. Así, abrirle algo
+    al cajero siempre es una decisión explícita y visible en el PR.
+42. **El costo mínimo de BCrypt queda en 10** (el valor por defecto). La prueba falla si algún usuario
+    se guarda con un costo menor.
+
 ## Abiertas
 
 21. ~~Restringir `/inventory` y `/admin/**` al rol ADMIN~~. *Resuelto en A7* (punto 34).
