@@ -19,6 +19,7 @@
 | CI con cobertura por capa en el PR, umbral de 80 % en `domain` y plantilla de PR (A3) | Listo; falta activar la protección de `main` en GitHub | [fase-1-esqueleto.md](fase-1-esqueleto.md#ci) |
 | README v1 (A4): arranque en cada terminal, solución de problemas, pruebas, flujo de ramas y PR, uso de IA | Listo | `README.md` |
 | Mensajes por WhatsApp simulados en el log (A6); Twilio en la Entrega 3 | Listo | `LogMessageNotifier` |
+| **Documento de arquitectura** (A11): capas, modelo de dominio, dependencias, flujo de venta, seguridad, persistencia y calidad, con diagramas | Partes comunes listas; faltan las secciones de B, C y D | [`docs/arquitectura.md`](../arquitectura.md) |
 | **Login y roles** (FR-01, A7): sesión, BCrypt, menú por rol; el cajero solo ve Ventas y recibe 403 en el resto | Listo, con pruebas de seguridad sobre todas las rutas (A8) | `/login` · `admin/admin123`, `cajero/cajero123` |
 | ROP y borradores de pedido (FR-03, FR-04) | Pendiente (C) | — |
 | Inactivar productos, proveedores, parámetros, recepción y aprobación (FR-08, FR-10) | Pendiente (D) | — |
@@ -79,5 +80,5 @@ Lo que sigue (tareas del reparto):
   `SaleRepository.findItemsSoldBetween`;
 - proveedores, parámetros, recepción y aprobación de pedidos (D);
 - datos de demostración completos (C4);
-- documento de arquitectura (A11);
+- secciones de B, C y D en el documento de arquitectura (B10, C9, D8) y su revisión por otra letra;
 - el día de integración (29 de octubre).

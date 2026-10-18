@@ -294,3 +294,22 @@ rutas y a las contraseñas:
 - Error encontrado en el propio script: la comprobación "sin sesión" usaba las mismas cookies que el
   login. Spring recordaba `/pos` y llevaba ahí después de entrar (comportamiento correcto de la app).
   Se separaron las cookies.
+
+### A11: documento de arquitectura (partes comunes)
+
+- `docs/arquitectura.md`, con lo que piden los lineamientos del curso (capas, modelo de dominio y
+  dependencias entre componentes), escrito a partir del código y no del plan:
+  1. estilo y decisiones, con los cambios respecto a la Entrega 1;
+  2. capas: diagrama, qué puede y qué no puede cada una, y los módulos de la Entrega 1 en el código;
+  3. modelo de dominio: diagrama de clases, estados del pedido, reglas de negocio con su requisito y
+     estado, y errores de negocio;
+  4. dependencias: controladores → servicios → puertos, puertos y adaptadores con su estado, y cableado;
+  5. diagrama de secuencia de la venta con FIFO y el reintento por concurrencia;
+  6. a 9. seguridad, persistencia, calidad verificable y despliegue;
+  10. secciones de B, C y D con lo mínimo que debe tener cada una.
+- 5 diagramas en Mermaid (capas, clases, estados, componentes y secuencia).
+- Se comprobaron contra el código: la restricción `CHECK` de stock, la tabla `price_history`, el orden
+  FIFO, los constructores de servicios y controladores, y el reintento de 3 intentos al cerrar una venta.
+- README: enlace al documento y fila en la declaración de uso de IA.
+- Falta: las secciones de B, C y D, la revisión por otra letra y la actualización después de la
+  integración.

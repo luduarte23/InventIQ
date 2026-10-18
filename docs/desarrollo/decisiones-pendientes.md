@@ -186,6 +186,17 @@ para revisión:
 45. **El JAR de `main` se guarda 30 días** como artefacto del CI (`inventiq-jar`), para descargarlo
     en la demo sin compilar.
 
+## Hechas en A11 (documento de arquitectura)
+
+46. **El documento vive en `docs/arquitectura.md`, con diagramas en Mermaid.** Mermaid es texto, así que
+    los diagramas se revisan en el PR igual que el código y GitHub los muestra como imagen. Si la entrega
+    se sube como PDF, hay que exportarlo desde GitHub o desde una vista previa que dibuje Mermaid.
+47. **El documento describe el código actual**, no el plan. Lo que falta (servicios de C y D,
+    adaptadores de D2) aparece como "en construcción" o "pendiente". Después del día de integración
+    (29 oct) hay que actualizar las tablas de servicios, puertos y estado de las reglas.
+48. **Las secciones de B, C y D** (10.2 a 10.4) quedan con lo mínimo que debe tener cada una. Según el
+    reparto, A11 se cierra cuando estén completas y otra letra haya revisado el documento.
+
 ## Abiertas
 
 21. ~~Restringir `/inventory` y `/admin/**` al rol ADMIN~~. *Resuelto en A7* (punto 34).

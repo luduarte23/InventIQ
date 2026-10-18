@@ -65,6 +65,8 @@ InventIQ captures sales in real time through barcode scanning with **FIFO invent
 
 ## Architecture
 
+The full architecture document for Deliverable 2 (layers, domain model and dependencies between components, with diagrams) is in [`docs/arquitectura.md`](docs/arquitectura.md), in Spanish.
+
 **Selected style:** Layered (N-Tier) architecture under the **MVC** pattern, organized into four decoupled layers with dependencies pointing downward only:
 
 1. **Presentation (MVC)** - Controllers/views for POS, purchasing, and administration; MOD-01 intercepts every request for session/role validation.
@@ -143,6 +145,7 @@ This project used AI assistance during development. How we use it:
 | Claude Code | Complete domain model and ports: purchase orders and their state transitions, settings, audit log, alerts, users, supplier minimum order, and their tests | Implement task A2 of the work plan                         |
 | Claude Code | CI improvements (coverage summary per layer, test reports) and the pull request template                                      | Implement task A3 of the work plan                         |
 | Claude Code | Login with two roles: Spring Security configuration, user loading, login page, menu by role, 403 page, and their tests | Implement task A7 of the work plan                         |
+| Claude Code | Architecture document (`docs/arquitectura.md`): layers, domain model and component dependencies, drafted from the code | Implement task A11 of the work plan; every section is reviewed by the team |
 | Claude Code | Development notes in `docs/desarrollo/` and this README (Windows instructions, troubleshooting, workflow)                     | Keep track of progress and pending decisions; task A4      |
 
 The rules Claude Code follows in this repository are in [`CLAUDE.md`](CLAUDE.md).
