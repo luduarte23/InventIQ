@@ -201,6 +201,18 @@ java -jar target/inventiq-0.1.0-SNAPSHOT.jar
 java -jar target/inventiq-0.1.0-SNAPSHOT.jar --spring.profiles.active=demo   # with demo data
 ```
 
+The JAR (about 60 MB) contains everything: the web server, the database engine, the migrations and the demo data. To run it on another computer, copy only the JAR; that computer needs nothing but Java 21. The database is created in a `data/` folder next to wherever you run the command.
+
+To check that the JAR works on its own, run the smoke test (Linux, macOS or Git Bash). It copies the JAR to an empty folder outside the repository, starts it with `java -jar`, signs in as `admin` and checks the main screens, then stops it and deletes the folder:
+
+```bash
+./mvnw package
+scripts/smoke-test-jar.sh          # normal database
+scripts/smoke-test-jar.sh --demo   # with demo data
+```
+
+CI runs the same test on every pull request, on a freshly created machine with only Java 21. Every version of `main` also leaves its JAR as the `inventiq-jar` artifact of the CI run.
+
 ### Troubleshooting
 
 | Problem                                                          | Solution                                                                                                     |

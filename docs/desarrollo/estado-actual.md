@@ -7,6 +7,7 @@
 | Área | Estado | Dónde verlo |
 |---|---|---|
 | Arranque con un solo comando, H2 en archivo, Flyway | Listo (Fase 1) | `./mvnw spring-boot:run` |
+| **JAR autocontenido** (A9): `java -jar` en una carpeta vacía, solo con Java 21; probado en cada PR | Listo | `scripts/smoke-test-jar.sh` |
 | Interfaz con barra lateral retráctil, inicio con indicadores | Lista | Cualquier página · [interfaz.md](interfaz.md) |
 | **Venta por código de barras con FIFO** (FR-02, US-03) | Lista (Parte B) | Ventas (`/pos`) |
 | **Inventario**: lotes en orden FIFO, vencimiento en Día/Mes/Año con colores, filtros | Listo | Inventario (`/inventory`) |

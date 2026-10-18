@@ -270,3 +270,27 @@ rutas y a las contraseñas:
 - **Prueba de sabotaje**: se abrió `/inventory` al cajero en `SecurityConfig` a propósito, y
   `SecurityRoutesTest` falló señalando `GET /inventory -> 200`. Después se restauró el archivo.
 - Verificado: `./mvnw verify` en verde con 282 pruebas; cobertura del dominio, 99,4 %.
+
+### A9: JAR autocontenido en una máquina limpia
+
+- Se revisó el JAR (`./mvnw package`, 62 MB, 83 librerías):
+  - manifiesto de Spring Boot con `InventiqApplication`, compilado para Java 21;
+  - trae plantillas, estilos, las 3 migraciones, los datos demo (también la migración en Java),
+    Chart.js, H2, Spring Security y Flyway;
+  - no trae clases de prueba.
+- `scripts/smoke-test-jar.sh`:
+  - copia el JAR a una carpeta vacía fuera del repositorio y lo arranca con `java -jar`;
+  - comprueba el login, los estilos y Chart.js servidos desde el JAR, la redirección sin sesión, el
+    login del admin, el inicio y el historial;
+  - con `--demo`, comprueba además los datos de demostración;
+  - revisa que la base quede en `./data` junto al JAR, que no se cree el usuario por defecto de
+    Spring y que el log no tenga errores;
+  - siempre detiene la app y borra la carpeta.
+- CI: después de `verify`, el script corre en los perfiles normal y demo, en la máquina recién
+  creada de GitHub (solo Java 21). Cada versión de `main` sube su JAR como artefacto `inventiq-jar`.
+- README: qué trae el JAR, cómo llevarlo a otro computador y cómo correr la prueba de humo.
+- Verificado en local con Java 21.0.12: los dos perfiles pasan todas las comprobaciones. La app
+  arranca en unos 25 s; no quedan carpetas temporales ni el puerto ocupado.
+- Error encontrado en el propio script: la comprobación "sin sesión" usaba las mismas cookies que el
+  login. Spring recordaba `/pos` y llevaba ahí después de entrar (comportamiento correcto de la app).
+  Se separaron las cookies.

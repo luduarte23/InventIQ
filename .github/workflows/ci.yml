@@ -36,6 +36,14 @@ jobs:
           chmod +x mvnw
           ./mvnw -B verify
 
+      # A9 (NFR-05): el JAR que dejó verify arranca con un solo comando en una carpeta vacía, sin
+      # Maven ni el código fuente; en esta máquina recién creada solo se instaló Java 21.
+      - name: Prueba de humo del JAR
+        run: |
+          chmod +x scripts/smoke-test-jar.sh
+          scripts/smoke-test-jar.sh
+          scripts/smoke-test-jar.sh --demo
+
       # Tabla de cobertura por capa en el resumen de la corrida, visible desde el PR.
       - name: Resumen de cobertura
         if: always()
@@ -72,6 +80,15 @@ jobs:
           name: jacoco-report
           path: target/site/jacoco/
           if-no-files-found: ignore
+
+      # Cada versión de main deja su JAR listo para descargar (pestaña Actions → la corrida → Artifacts).
+      - name: JAR de main
+        if: github.ref == 'refs/heads/main' && success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inventiq-jar
+          path: target/inventiq-*.jar
+          retention-days: 30
 
       # Si una prueba falla, deja su salida para revisarla sin volver a correr el CI.
       - name: Reportes de pruebas fallidas
