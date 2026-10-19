@@ -168,6 +168,24 @@ para revisión:
 42. **El costo mínimo de BCrypt queda en 10** (el valor por defecto). La prueba falla si algún usuario
     se guarda con un costo menor.
 
+## Hechas en A9 (JAR en máquina limpia)
+
+43. **La "máquina limpia" es la del CI.** No hay Docker en los equipos, así que la prueba se hace
+    de dos formas:
+    - en local, con `scripts/smoke-test-jar.sh`, que corre el JAR en una carpeta vacía fuera del
+      repositorio;
+    - en GitHub Actions, en cada PR, en una máquina recién creada donde solo se instala Java 21.
+
+    Falta una prueba manual en el computador de otro integrante antes de la entrega (calendario: día
+    de integración).
+44. **El JAR conserva el nombre con la versión** (`inventiq-0.1.0-SNAPSHOT.jar`). La Entrega 1 lo
+    llama `inventiq.jar` en el diagrama de despliegue. Se podría fijar con `<finalName>`, pero el
+    comando de `CLAUDE.md` (`target/inventiq-*.jar`) dejaría de coincidir, y cambiar `CLAUDE.md`
+    requiere el acuerdo de los cuatro. Para la etiqueta v0.2 (A10) conviene decidir si la versión
+    del `pom.xml` pasa a `0.2.0`.
+45. **El JAR de `main` se guarda 30 días** como artefacto del CI (`inventiq-jar`), para descargarlo
+    en la demo sin compilar.
+
 ## Abiertas
 
 21. ~~Restringir `/inventory` y `/admin/**` al rol ADMIN~~. *Resuelto en A7* (punto 34).
