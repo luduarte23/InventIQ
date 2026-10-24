@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!--
+  Plantilla base (D1). Cada página la usa con
+    <html th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+  La barra lateral se contrae a solo íconos (static/js/app.js recuerda la elección).
+  Cada módulo nuevo reemplaza aquí su ítem "próximamente".
+-->
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:replace="${title}">InventIQ</title>
+    <script>
+        try {
+            if (localStorage.getItem('inventiq.sidebar') === 'collapsed') {
+                document.documentElement.classList.add('sidebar-collapsed');
+            }
+        } catch (e) { /* sin almacenamiento: barra expandida */ }
+    </script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body th:with="path=${currentPath} ?: ''">
+<header class="topbar">
+    <button type="button" class="topbar-toggle" data-sidebar-toggle aria-controls="sidebar" aria-expanded="true"
+            aria-label="Mostrar u ocultar el menú">
+        <svg th:replace="~{fragments/icons :: icon('menu')}"></svg>
+    </button>
+    <a class="brand" th:href="@{/}">
+        <span class="brand-mark"><svg th:replace="~{fragments/icons :: icon('box')}"></svg></span>InventIQ
+    </a>
+    <p class="topbar-date" th:if="${today}" th:text="${@fmt.longDate(today)}">viernes, 16 de octubre de 2026</p>
+</header>
+
+<div class="shell">
+    <aside id="sidebar" class="sidebar" aria-label="Menú principal">
+        <nav class="nav">
+            <p class="nav-section">Operación</p>
+            <a class="nav-link" th:href="@{/pos}" title="Ventas"
+               th:classappend="${#strings.startsWith(path, '/pos')} ? 'active'">
+                <svg th:replace="~{fragments/icons :: icon('cart')}"></svg><span class="nav-label">Ventas</span>
+            </a>
+            <a class="nav-link" th:href="@{/inventory}" title="Inventario"
+               th:classappend="${#strings.startsWith(path, '/inventory')} ? 'active'">
+                <svg th:replace="~{fragments/icons :: icon('box')}"></svg><span class="nav-label">Inventario</span>
+            </a>
+            <p class="nav-section">Abastecimiento</p>
+            <span class="nav-link disabled" title="Reabastecimiento: próximamente">
+                <svg th:replace="~{fragments/icons :: icon('refresh')}"></svg><span class="nav-label">Reabastecimiento</span>
+            </span>
+            <span class="nav-link disabled" title="Pedidos: próximamente">
+                <svg th:replace="~{fragments/icons :: icon('clipboard')}"></svg><span class="nav-label">Pedidos</span>
+            </span>
+            <p class="nav-section">Administración</p>
+            <span class="nav-link disabled" title="Productos: próximamente">
+                <svg th:replace="~{fragments/icons :: icon('tag')}"></svg><span class="nav-label">Productos</span>
+            </span>
+        </nav>
+    </aside>
+    <div class="sidebar-backdrop" data-sidebar-close></div>
+
+    <div class="content">
+        <div th:replace="~{fragments/messages :: messages}"></div>
+        <main th:replace="${content}"></main>
+    </div>
+</div>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>
