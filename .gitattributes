@@ -1,0 +1,10 @@
+* text=auto
+
+# Los scripts deben conservar su fin de línea en cualquier sistema operativo.
+mvnw text eol=lf
+*.sh text eol=lf
+*.cmd text eol=crlf
+
+*.pdf binary
+*.png binary
+*.jar binary

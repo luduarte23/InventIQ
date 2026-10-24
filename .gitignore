@@ -22,3 +22,34 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# --- InventIQ (lo de arriba es la plantilla de Java con la que se creó el repositorio) ---
+
+# Maven y Spring Boot
+target/
+HELP.md
+logs/
+
+# Secretos locales (p. ej. credenciales de Twilio en la Entrega 3): nunca se versionan.
+.env
+application-local.properties
+
+# Base de datos H2 embebida (se crea sola al arrancar)
+data/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+bin/
+
+# Claude Code: la configuración y las instrucciones son locales de cada integrante
+.claude/settings.local.json
+CLAUDE.md
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

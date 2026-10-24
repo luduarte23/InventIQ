@@ -3,7 +3,7 @@
 <p align="left">
   <img src="https://img.shields.io/badge/Java-21%20LTS-red?style=for-the-badge&logo=openjdk">
   <img src="https://img.shields.io/badge/Spring%20Boot-Monolith-success?style=for-the-badge&logo=springboot">
-  <img src="https://img.shields.io/badge/Status-In%20Development (DELIVERABLE 1)-yellow?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Status-In%20Development%20(DELIVERABLE%202)-yellow?style=for-the-badge">
   <img src="https://img.shields.io/badge/UNAL-Proyecto%20Universitario-green?style=for-the-badge">
 </p>
 
@@ -12,6 +12,8 @@
 > Instructor: Magda Lucía Mejía Torres
 >
 > Deliverable 1 - Requirements & Architecture | Submission Date: 05/10/2026
+>
+> Deliverable 2 - Increment 1 | In progress
 >
 > Repository: https://github.com/luduarte23/InventIQ
 
@@ -70,6 +72,8 @@ InventIQ captures sales in real time through barcode scanning with **FIFO invent
 3. **Domain (pure)** - Business rules (FIFO, ROP, MOQ, budget, discounts), with zero infrastructure dependencies; only defines the interfaces it needs (`RepositorioInventario`, `NotificadorMensajes`).
 4. **Infrastructure and Deployment (MOD-06)** - Implements those interfaces: embedded-database persistence, versioned schema migrations, and the Twilio adapter.
 
+In the code, classes use English names. For example, `VentasService` is `SalesService`, `NotificadorMensajes` is `MessageNotifier`, and `RepositorioInventario` is split into the `ProductRepository` and `BatchRepository` ports. See [Project Structure](#project-structure).
+
 **Accepted trade-offs:**
 
 - _Horizontal scalability vs. simplicity_ - a monolith sacrifices independent component scaling, accepted because the scope targets single-branch businesses.
@@ -88,21 +92,23 @@ InventIQ captures sales in real time through barcode scanning with **FIFO invent
 
 ### Deployment
 
-_In development!_
+_In development!_ The application already runs as a single self-contained JAR (see [Getting Started](#getting-started)).
 
 ---
 
 ## Tech Stack
 
-| Element        | Technology                                                                |
-| -------------- | ------------------------------------------------------------------------- |
-| Language       | Java 21 (LTS)                                                             |
-| Framework      | Spring Boot (embedded server)                                             |
-| Views          | Thymeleaf (server-rendered, no JavaScript)                                |
-| Build          | Maven, with wrapper (`./mvnw`) included                                   |
-| Database       | Embedded (H2/SQLite), schema via versioned migrations                     |
-| Authentication | Session-based, role-restricted (Administrator / Cashier)                  |
-| External API   | Twilio WhatsApp Sandbox, behind a `NotificadorMensajes` adapter interface |
+| Element        | Technology                                                                                    |
+| -------------- | --------------------------------------------------------------------------------------------- |
+| Language       | Java 21 (LTS)                                                                                 |
+| Framework      | Spring Boot 4 (embedded server)                                                               |
+| Views          | Thymeleaf, server-rendered; minimal JavaScript for the scanner, sidebar and table filters     |
+| Build          | Maven, with wrapper (`./mvnw`) included                                                       |
+| Database       | Embedded H2 stored in a file, schema via Flyway versioned migrations                          |
+| Authentication | Session-based, role-restricted (Administrator / Cashier)                                      |
+| External API   | Twilio WhatsApp Sandbox, behind a `MessageNotifier` adapter interface                         |
+| Testing        | JUnit 5, AssertJ, ArchUnit, JaCoCo (build fails below 80 % domain coverage)                   |
+| CI             | GitHub Actions: `./mvnw verify` on every pull request                                         |
 
 ---
 
@@ -119,9 +125,16 @@ _In development!_
 
 ## AI Usage Declaration
 
-This project used AI assistance (Claude) during development for:
+This project used AI assistance during development. AI-assisted code goes through pull requests like any other code, and every member must be able to explain it.
 
-- Architecture validation against the mandatory stack constraints
+| Tool        | Parts                                                                                                                          | Purpose                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| Claude      | Deliverable 1                                                                                                                  | Architecture validation against the mandatory stack constraints |
+| Claude Code | Project skeleton (`pom.xml`, wrapper, configuration, initial migration, base template, CI, architecture test)                  | Generate the initial structure from the documents in `docs/` |
+| Claude Code | Part B: FIFO rule, sales service, persistence, sales and inventory screens, provisional demo data, and their tests             | Implement tasks B1–B8 of the work plan                     |
+| Claude Code | Development notes in `docs/desarrollo/` and this README                                                                        | Keep track of progress and pending decisions               |
+
+Claude Code works under local rules (a `CLAUDE.md` file that is not versioned): it never commits or pushes, and the member who commits reviews every change.
 
 ---
 
@@ -133,7 +146,87 @@ _In development!_
 
 ## Getting Started
 
-_In development!_
+### Requirements
+
+Only **Java 21** or newer. You don't need to install Maven or a database: the project includes the Maven wrapper and uses an embedded H2 database stored in a file.
+
+Check your version with `java -version`.
+
+### Run the application
+
+```bash
+git clone https://github.com/luduarte23/InventIQ.git
+cd InventIQ
+./mvnw spring-boot:run          # Linux / macOS / Git Bash
+mvnw.cmd spring-boot:run        # Windows (cmd or PowerShell)
+```
+
+Open <http://localhost:8080>. The first run downloads the dependencies, so it takes a few minutes.
+
+The database is created in `./data/`, and Flyway applies the migrations on startup. To start from scratch, stop the application and delete the `data/` folder.
+
+**With demo data**: 9 products from 2 suppliers, with batches that are expired, about to expire or out of stock (separate database in `./data/inventiq-demo`).
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=demo
+```
+
+You can also package the application and run it as a single JAR:
+
+```bash
+./mvnw package
+java -jar target/inventiq-0.1.0-SNAPSHOT.jar
+```
+
+### Screens
+
+The user interface is in Spanish. All screens are reachable from the sidebar.
+
+| Screen       | URL          | What it does                                                                       |
+| ------------ | ------------ | ---------------------------------------------------------------------------------- |
+| Ventas (POS) | `/pos`       | Sell with a USB barcode scanner or by typing the code; stock is deducted FIFO      |
+| Inventario   | `/inventory` | Stock per product, batches in FIFO order, expiration by day/month/year with colors |
+
+`/` opens the sales screen. Replenishment, orders and products appear in the menu as "coming soon".
+
+Initial users, for when login is ready: `admin` / `admin123` and `cajero` / `cajero123`.
+
+Demo barcodes to try, and the current status of every module, are in [`docs/desarrollo/estado-actual.md`](docs/desarrollo/estado-actual.md).
+
+### Run the tests
+
+```bash
+./mvnw test                                        # all tests
+./mvnw test -Dtest=FifoAllocatorTest               # one class
+./mvnw test -Dtest=FifoAllocatorTest#methodName    # one method
+./mvnw verify                                      # tests + domain coverage check (fails below 80 %)
+```
+
+The coverage report is generated at `target/site/jacoco/index.html`.
+
+The business rules (`domain` package) are tested without Spring or a database. An ArchUnit test fails if the domain imports Spring or JPA, or if a layer depends on another one in the wrong direction.
+
+### Project Structure
+
+A single Maven project organized by layers (`co.edu.unal.inventiq`):
+
+| Package          | Contents                                                     |
+| ---------------- | ------------------------------------------------------------ |
+| `domain`         | Model, business rules and ports. Plain Java.                 |
+| `application`    | Use cases that orchestrate the domain.                       |
+| `infrastructure` | JPA persistence, notifications, security and configuration.  |
+| `web`            | Controllers and Thymeleaf views.                             |
+
+Dependencies point one way only: `web → application → domain ← infrastructure`. Each package has a `package-info.java` describing what goes in it.
+
+Development notes (in Spanish) are in [`docs/desarrollo/`](docs/desarrollo/README.md): status, log, design decisions, and the decisions that are still pending.
+
+### Development Workflow
+
+- One branch per task, named after the task in the work plan: `feature/B2-fifo`.
+- Each member commits under their own identity.
+- Everything enters `main` through a pull request approved by another member. CI runs `./mvnw verify` on every pull request.
+- Migrations are named with date and time (`V20261022_1430__description.sql`) and are never edited once merged.
 
 ---
 
