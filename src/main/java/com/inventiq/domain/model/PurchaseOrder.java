@@ -14,7 +14,7 @@ import java.util.Objects;
 public class PurchaseOrder {
 
     private Long id;
-    private Long supplierId;
+    private Long supplierId;            // null: pedido "por revisar" (needsReview = true)
     private OrderStatus status;
     private boolean needsReview;
     private boolean deferredByBudget;
@@ -41,13 +41,13 @@ public class PurchaseOrder {
         recalculateTotal();
     }
 
-    /** Crea una orden nueva en borrador, sin id ni líneas. */
+    /** Orden nueva en borrador. Sin proveedor queda marcada "por revisar". */
     public static PurchaseOrder draft(Long supplierId, Instant now) {
-        return new PurchaseOrder(null, supplierId, OrderStatus.DRAFT, false, false,
-                now, null, null, null, List.of());
+        return new PurchaseOrder(null, supplierId, OrderStatus.DRAFT, supplierId == null,
+                false, now, null, null, null, List.of());
     }
 
-    // --- Edición (solo en borrador) ---
+    // --- Edición de líneas (solo en DRAFT, §4) ---
 
     public void addLine(PurchaseOrderLine line) {
         requireStatus(OrderStatus.DRAFT);
@@ -60,21 +60,30 @@ public class PurchaseOrder {
         recalculateTotal();
     }
 
+    public void updateLine(Long productId, int quantityOrdered, boolean addedByMoq) {
+        requireStatus(OrderStatus.DRAFT);
+        requireLine(productId).edit(quantityOrdered, addedByMoq);
+        recalculateTotal();
+    }
+
+    public void removeLine(Long productId) {
+        requireStatus(OrderStatus.DRAFT);
+        lines.remove(requireLine(productId));
+        recalculateTotal();
+    }
+
     public void markForReview() { this.needsReview = true; }
     public void clearReview()   { this.needsReview = false; }
 
     public void deferByBudget()       { this.deferredByBudget = true; }
     public void clearBudgetDeferral() { this.deferredByBudget = false; }
 
-    // --- Transiciones de estado ---
+    // --- Transiciones (§4) ---
 
     public void approve(Instant now) {
         requireStatus(OrderStatus.DRAFT);
         if (lines.isEmpty()) {
             throw new IllegalStateException("No se puede aprobar una orden sin líneas");
-        }
-        if (needsReview) {
-            throw new IllegalStateException("La orden necesita revisión antes de aprobarse");
         }
         this.status = OrderStatus.APPROVED;
         this.approvedAt = Objects.requireNonNull(now);
@@ -86,18 +95,13 @@ public class PurchaseOrder {
         this.sentAt = Objects.requireNonNull(now);
     }
 
-    /** Registra lo que llegó de un producto. La orden pasa a parcial o completa. */
+    /** SENT o PARTIALLY_RECEIVED -> PARTIALLY_RECEIVED o RECEIVED. */
     public void registerReception(Long productId, int quantity, Instant now) {
         if (status != OrderStatus.SENT && status != OrderStatus.PARTIALLY_RECEIVED) {
             throw new IllegalStateException("Solo se puede recibir una orden enviada; estado: "
                     + status);
         }
-        PurchaseOrderLine line = findLine(productId);
-        if (line == null) {
-            throw new IllegalArgumentException("El producto " + productId
-                    + " no está en la orden " + id);
-        }
-        line.registerReceived(quantity);
+        requireLine(productId).registerReceived(quantity);
 
         if (lines.stream().allMatch(PurchaseOrderLine::isFullyReceived)) {
             this.status = OrderStatus.RECEIVED;
@@ -107,8 +111,10 @@ public class PurchaseOrder {
         }
     }
 
+    /** DRAFT | APPROVED | SENT -> CANCELLED. */
     public void cancel() {
-        if (status != OrderStatus.DRAFT && status != OrderStatus.APPROVED) {
+        if (status != OrderStatus.DRAFT && status != OrderStatus.APPROVED
+                && status != OrderStatus.SENT) {
             throw new IllegalStateException("No se puede cancelar una orden en estado " + status);
         }
         this.status = OrderStatus.CANCELLED;
@@ -128,6 +134,15 @@ public class PurchaseOrder {
                 .filter(l -> l.getProductId().equals(productId))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private PurchaseOrderLine requireLine(Long productId) {
+        PurchaseOrderLine line = findLine(productId);
+        if (line == null) {
+            throw new IllegalArgumentException("El producto " + productId
+                    + " no está en la orden " + id);
+        }
+        return line;
     }
 
     private void recalculateTotal() {

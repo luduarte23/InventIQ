@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.inventiq.domain.model;
 
 import java.math.BigDecimal;
@@ -11,15 +7,17 @@ import java.util.Objects;
 public class PurchaseOrderLine {
 
     private Long id;
+    private Long orderId;          // null hasta que la orden se guarda
     private Long productId;
     private int quantityOrdered;
     private int quantityReceived;
     private BigDecimal unitCost;
-    private boolean addedByMoq;   // true si la línea se agregó para llegar al pedido mínimo
+    private boolean addedByMoq;
 
-    public PurchaseOrderLine(Long id, Long productId, int quantityOrdered,
+    public PurchaseOrderLine(Long id, Long orderId, Long productId, int quantityOrdered,
                              int quantityReceived, BigDecimal unitCost, boolean addedByMoq) {
         this.id = id;
+        this.orderId = orderId;
         this.productId = Objects.requireNonNull(productId, "productId es obligatorio");
         if (quantityOrdered <= 0) {
             throw new IllegalArgumentException("quantityOrdered debe ser mayor que 0");
@@ -51,7 +49,15 @@ public class PurchaseOrderLine {
         return quantityReceived == quantityOrdered;
     }
 
-    // Sin "public": solo PurchaseOrder (mismo paquete) puede cambiar la línea.
+    // Sin "public": solo PurchaseOrder (mismo paquete) puede modificar la línea.
+    void edit(int newQuantityOrdered, boolean newAddedByMoq) {
+        if (newQuantityOrdered <= 0) {
+            throw new IllegalArgumentException("quantityOrdered debe ser mayor que 0");
+        }
+        this.quantityOrdered = newQuantityOrdered;
+        this.addedByMoq = newAddedByMoq;
+    }
+
     void registerReceived(int quantity) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("quantity debe ser mayor que 0");
@@ -64,6 +70,7 @@ public class PurchaseOrderLine {
     }
 
     public Long getId() { return id; }
+    public Long getOrderId() { return orderId; }
     public Long getProductId() { return productId; }
     public int getQuantityOrdered() { return quantityOrdered; }
     public int getQuantityReceived() { return quantityReceived; }
