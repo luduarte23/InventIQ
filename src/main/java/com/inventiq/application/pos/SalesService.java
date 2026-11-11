@@ -20,4 +20,10 @@ public interface SalesService {
     ScanResult scan(Long saleId, String barcode, int quantity);
 
     Sale finishSale(Long saleId);
+
+    /**
+     * Parte B: cancela una venta abierta. Devuelve a cada lote las unidades que se le
+     * descontaron al escanear y borra la venta.
+     */
+    void cancelSale(Long saleId);
 }

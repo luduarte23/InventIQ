@@ -62,6 +62,18 @@ public class Batch {
         this.quantityRemaining -= quantity;
     }
 
+    /** Parte B: devuelve unidades a este lote (al cancelar una venta). Nunca supera lo recibido. */
+    public void restore(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("quantity debe ser mayor que 0");
+        }
+        if (quantityRemaining + quantity > quantityReceived) {
+            throw new IllegalStateException("El lote " + id + " no puede tener más de "
+                    + quantityReceived + " unidades");
+        }
+        this.quantityRemaining += quantity;
+    }
+
     public boolean isDepleted() {
         return quantityRemaining == 0;
     }
