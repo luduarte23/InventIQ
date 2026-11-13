@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Ventas · InventIQ</title>
+</head>
+<body>
+<h1>Ventas</h1>
+
+<!-- Mensajes que manda el controlador después de cada acción -->
+<p th:if="${error}" th:text="${error}" style="color: darkred;">Error</p>
+<p th:if="${message}" th:text="${message}" style="color: darkgreen;">Mensaje</p>
+
+<!-- El lector de código escribe el número y envía Enter: eso manda este formulario.
+     'autofocus' deja el cursor en el campo cada vez que la página se recarga. -->
+<form method="post" th:action="@{/pos/scan}">
+    <label>Código de barras
+        <input type="text" name="barcode" autofocus required autocomplete="off">
+    </label>
+    <label>Cantidad
+        <input type="number" name="quantity" value="1" min="1" required>
+    </label>
+    <button type="submit">Agregar</button>
+</form>
+
+<p th:if="${sale == null}">No hay una venta en curso. Escanea un producto para empezar.</p>
+
+<div th:if="${sale != null}">
+    <table border="1" cellpadding="6">
+        <thead>
+        <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio unitario</th>
+            <th>Subtotal</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="line : ${sale.lines}">
+            <td th:text="${line.productName()}">Yogur de fresa</td>
+            <td th:text="${line.quantity()}">2</td>
+            <td th:text="${'$ ' + line.unitPrice()}">$ 3200.00</td>
+            <td th:text="${'$ ' + line.subtotal()}">$ 6400.00</td>
+        </tr>
+        </tbody>
+    </table>
+    <h2 th:text="${'Total: $ ' + sale.total}">Total: $ 6400.00</h2>
+
+    <form method="post" th:action="@{/pos/finish}" style="display: inline;">
+        <button type="submit">Terminar venta</button>
+    </form>
+    <form method="post" th:action="@{/pos/cancel}" style="display: inline;">
+        <button type="submit">Cancelar venta</button>
+    </form>
+</div>
+</body>
+</html>

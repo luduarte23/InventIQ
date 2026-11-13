@@ -16,4 +16,7 @@ public interface SaleRepository {
 
     // Propuesta A2: la necesitan SalesService.scan(saleId, ...) y finishSale(saleId) (§6.2).
     Optional<Sale> findById(Long id);
+
+    /** Parte B: borra una venta abierta y sus ítems (la usa SalesService.cancelSale). */
+    void delete(Long id);
 }
