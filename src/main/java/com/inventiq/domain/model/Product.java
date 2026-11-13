@@ -64,7 +64,7 @@ public class Product {
     }
 
     public boolean needsReorder(int currentStock) {
-        return currentStock <= reorderPoint;
+        return currentStock < reorderPoint;
     }
 
     public void deactivate() {
