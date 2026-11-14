@@ -187,7 +187,24 @@ También puedes empaquetar la aplicación y ejecutarla como un único JAR:
 ./mvnw package
 java -jar target/inventiq-0.0.1-SNAPSHOT.jar
 ```
+## Inicio de sesión y roles
 
+La aplicación exige iniciar sesión. Al arrancar por primera vez se crean dos usuarios:
+
+| Usuario  | Contraseña  | Rol           | Puede usar                                  |
+|----------|-------------|---------------|---------------------------------------------|
+| `admin`  | `admin123`  | Administrador | Todo, incluida la consola de H2             |
+| `cajero` | `cajero123` | Cajero        | Solo la pantalla de ventas (`/pos`)         |
+
+- Estas contraseñas son **solo para desarrollo y para la demo**. En producción se definen con las
+  variables de entorno `INVENTIQ_INITIALUSERS_ADMINPASSWORD` e `INVENTIQ_INITIALUSERS_CASHIERPASSWORD`
+  antes del primer arranque.
+- Las contraseñas se guardan con hash BCrypt, nunca en texto.
+- Toda pantalla nueva queda restringida al administrador por defecto. Las reglas de acceso están en
+  `infrastructure/security/SecurityConfig.java`.
+- Si después de actualizar el código el login no acepta estas contraseñas, borra la base local
+  (`data/inventiqdb*`) y vuelve a arrancar.
+  
 ### Pantallas
 
 La interfaz de usuario está en español.
