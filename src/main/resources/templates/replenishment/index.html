@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reabastecimiento · InventIQ</title>
+</head>
+<body>
+<h1>Reabastecimiento</h1>
+<p th:if="${message}" th:text="${message}" style="color: darkgreen;"></p>
+<p th:text="${toOrder + ' de ' + rows.size() + ' productos están en su punto de reorden o por debajo.'}"></p>
+<form method="post" th:action="@{/replenishment/drafts}">
+    <button type="submit">Generar borradores</button>
+</form>
+
+<!-- Borradores que se acaban de generar. El administrador los revisa y aprueba en Pedidos. -->
+<div th:each="draft : ${drafts}">
+    <h3 th:text="${draft.supplier() + ': $ ' + draft.total()}"></h3>
+    <ul><li th:each="line : ${draft.lines()}" th:text="${line}"></li></ul>
+    <p th:unless="${draft.moqSuggestions().isEmpty()}">Para llegar al pedido mínimo se sugiere agregar:</p>
+    <ul><li th:each="s : ${draft.moqSuggestions()}" th:text="${s}"></li></ul>
+</div>
+
+<!-- En pantallas angostas la tabla se desplaza de lado. Los que hay que pedir van primero. -->
+<div style="overflow-x: auto;">
+    <table border="1" cellpadding="6">
+        <tr><th>Código</th><th>Producto</th><th>Proveedor</th><th>Stock vendible</th>
+            <th>Ventas por día</th><th>Punto de reorden</th><th>¿Pedir?</th></tr>
+        <tr th:each="row : ${rows}" th:style="${row.needsReorder()} ? 'background: #fff3cd;'">
+            <td th:text="${row.barcode()}"></td>
+            <td th:text="${row.name()}"></td>
+            <td th:text="${row.supplierName()}"></td>
+            <td th:text="${row.availableStock()}"></td>
+            <td th:text="${row.unitsPerDay() == null} ? 'Sin historial'
+                    : ${#numbers.formatDecimal(row.unitsPerDay(), 1, 2)}"></td>
+            <td th:text="${row.reorderPoint()}"></td>
+            <td th:text="${row.needsReorder()} ? ${'Sí, ' + row.suggestedQuantity() + ' unidades'} : 'No'"></td>
+        </tr>
+    </table>
+</div>
+</body>
+</html>
