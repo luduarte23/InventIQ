@@ -23,10 +23,15 @@ DELETE FROM suppliers;
 DELETE FROM alerts;
 DELETE FROM audit_logs;
 
--- 2. Cajero temporal: la pantalla de ventas registra las ventas a nombre del usuario 1
---    mientras no exista el login. Se reemplaza cuando A7 cree los usuarios reales.
+-- 2. Usuarios de la demo: admin / admin123 y cajero / cajero123.
+--    Se crean aquí (y no solo con InitialUsers) porque Flyway corre antes de que arranque la
+--    aplicación y las ventas de ejemplo del bloque 4 necesitan que el cajero ya exista.
+--    El valor es el hash BCrypt de la contraseña, nunca la contraseña en texto.
+--    Cada vez que este script se vuelve a aplicar, las contraseñas de la demo vuelven a estas.
 MERGE INTO users (username, password_hash, role, active) KEY (username)
-VALUES ('cajero', 'pendiente-login', 'CASHIER', TRUE);
+    VALUES ('admin', '$2a$10$rEcS19Xtu477raqhtirMG.jSb2q/a2Zil1Oh5068ZfLLIfEFG0c9e', 'ADMIN', TRUE);
+MERGE INTO users (username, password_hash, role, active) KEY (username)
+    VALUES ('cajero', '$2a$10$wNW7ETwcnOrARwdG4idmWuagoTBrp/3UjEeEU54GKS6yXS3gH/ehO', 'CASHIER', TRUE);
 
 -- 3. Configuración de la demo (la fila la crea V2 con presupuesto 0)
 UPDATE settings SET weekly_budget = 500000.00 WHERE id = 1;
