@@ -107,7 +107,8 @@ _¡En desarrollo!_ La aplicación ya se empaqueta como un único JAR autoconteni
 | Build          | Maven, con el wrapper (`./mvnw`) incluido                                                                   |
 | Base de datos  | H2 embebida, guardada en archivo; esquema con migraciones versionadas de Flyway                             |
 | Autenticación  | Por sesión, restringida por rol (Administrador / Cajero) - _en desarrollo_                                  |
-| API externa    | Sandbox de WhatsApp de Twilio, detrás de la interfaz `MessageNotifier` - _en desarrollo_                    |
+| API externa    | Sandbox de WhatsApp de Twilio, detrás de la interfaz `MessageNotifier` - _en desarrollo_ (por ahora, los    |
+|                  mensajes se escriben en el log)                                                                             |
 | Pruebas        | JUnit, ArchUnit 1.5 y JaCoCo 0.8.16 (el build falla si la cobertura del dominio baja del 80 %)              |
 | CI             | GitHub Actions: `./mvnw verify` en cada pull request y en cada push a `main`                                |
 
@@ -167,7 +168,18 @@ Abre <http://localhost:8080/pos>. La primera ejecución descarga las dependencia
 
 La base de datos se crea en `./data/` y Flyway aplica las migraciones al arrancar. Para empezar desde cero, detén la aplicación y borra la carpeta `data/`.
 
-La consola de H2 está en <http://localhost:8080/h2-console> (JDBC URL `jdbc:h2:file:./data/inventiqdb`, usuario `sa`, sin contraseña). Mientras no existan los datos demo, los productos y lotes de prueba se cargan desde ahí; en [`docs/parte-b-ventas.md`](docs/parte-b-ventas.md#probarlo-a-mano) hay un ejemplo listo para copiar.
+La consola de H2 está en <http://localhost:8080/h2-console> (JDBC URL `jdbc:h2:file:./data/inventiqdb`, usuario `sa`, sin contraseña).
+
+**Con datos demo** (perfil `demo`, en una base aparte: `./data/inventiq-demo`):
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=demo          # Linux / macOS / Git Bash
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=demo"    # Windows (PowerShell)
+```
+
+Los datos demo están en `src/main/resources/db/demo/R__datos_demo.sql` y solo se cargan con este perfil. Mientras se completan, en [`docs/parte-b-ventas.md`](docs/parte-b-ventas.md#probarlo-a-mano) hay un ejemplo de productos y lotes para cargar desde la consola de H2.
+
+Los mensajes de WhatsApp todavía no se envían: el notificador por defecto (`inventiq.notifier=log`) los escribe en la consola con la etiqueta `[WhatsApp simulado]`.
 
 También puedes empaquetar la aplicación y ejecutarla como un único JAR:
 
