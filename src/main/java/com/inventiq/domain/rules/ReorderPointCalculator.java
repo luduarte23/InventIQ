@@ -61,8 +61,9 @@ public final class ReorderPointCalculator {
      * La velocidad llega con 4 decimales (2 unidades en 3 días = 0.6667), así que
      * 0.6667 x 3 da 2.0001. Se deja primero en 2 decimales para que ese residuo
      * del redondeo no sume una unidad que no corresponde.
+     * Sin "private": también la usa la regla del pedido mínimo (MoqCompletion).
      */
-    private static int unitsSoldIn(BigDecimal unitsPerDay, int days) {
+    static int unitsSoldIn(BigDecimal unitsPerDay, int days) {
         BigDecimal units = unitsPerDay.multiply(BigDecimal.valueOf(days))
                 .setScale(2, RoundingMode.HALF_UP);
         return units.setScale(0, RoundingMode.CEILING).intValueExact();
