@@ -278,3 +278,144 @@ FROM (VALUES
     ('9003', 1, NULL, 7)
 ) AS v(barcode, quantity, expires_in_days, received_days_ago)
 JOIN products p ON p.barcode = v.barcode;
+
+-- 7. Historial de ventas cerradas de los últimos 90 días, del que sale la velocidad de ventas.
+--    Tabla de apoyo: unidades que vende cada producto al día, en promedio. Solo se usa
+--    para generar el historial y se borra al final. Sin historial quedan a propósito:
+--    Chocolisto 1 kg, Spaghetti Doria familiar 1 kg, Gatorade mandarina 500 ml,
+--    Cerveza BBC Monserrate roja 330 ml, Nescafé fina selección 85 g, Shampoo Savital 550 ml
+--    y Bocadillo de guayaba La Villa 300 g.
+DROP TABLE IF EXISTS demo_sales_rate;
+CREATE TABLE demo_sales_rate (n INT, barcode VARCHAR(50), units_per_day DECIMAL(5, 2));
+INSERT INTO demo_sales_rate (n, barcode, units_per_day) VALUES
+    (1, '1001', 6.00),
+    (2, '1002', 2.50),
+    (3, '1003', 2.00),
+    (4, '1004', 1.40),
+    (5, '1005', 0.70),
+    (6, '1006', 1.00),
+    (7, '1007', 0.50),
+    (8, '1008', 2.20),
+    (9, '2001', 1.20),
+    (10, '2002', 2.50),
+    (11, '2003', 1.30),
+    (12, '2004', 3.50),
+    (13, '2005', 2.00),
+    (14, '2006', 6.00),
+    (15, '2007', 0.60),
+    (17, '2009', 0.40),
+    (18, '2010', 1.10),
+    (19, '2011', 1.20),
+    (21, '2013', 1.50),
+    (22, '2014', 0.90),
+    (23, '2015', 0.80),
+    (24, '2016', 0.40),
+    (25, '2017', 0.30),
+    (26, '3001', 4.00),
+    (27, '3002', 1.50),
+    (28, '3003', 0.70),
+    (29, '3004', 1.20),
+    (30, '3005', 1.00),
+    (31, '3006', 2.00),
+    (32, '3007', 0.80),
+    (33, '3008', 0.90),
+    (35, '4001', 4.00),
+    (36, '4002', 0.80),
+    (37, '4003', 3.00),
+    (38, '4004', 3.00),
+    (39, '4005', 7.00),
+    (40, '4006', 2.50),
+    (42, '5001', 3.00),
+    (43, '5002', 1.80),
+    (44, '5003', 1.60),
+    (45, '5004', 0.90),
+    (46, '5005', 1.50),
+    (47, '5006', 0.80),
+    (48, '5007', 0.50),
+    (49, '5008', 0.40),
+    (50, '5009', 1.70),
+    (51, '5010', 1.80),
+    (52, '5011', 1.00),
+    (53, '5012', 0.60),
+    (54, '5013', 1.00),
+    (55, '5014', 0.80),
+    (56, '5015', 1.30),
+    (57, '5016', 1.20),
+    (58, '5017', 0.70),
+    (59, '5018', 0.70),
+    (60, '5019', 0.60),
+    (61, '5020', 0.40),
+    (62, '5021', 1.30),
+    (64, '5023', 4.00),
+    (65, '5024', 0.80),
+    (66, '5025', 12.00),
+    (67, '5026', 3.00),
+    (68, '5027', 1.50),
+    (69, '5028', 5.00),
+    (70, '5029', 2.50),
+    (71, '5030', 1.80),
+    (72, '5031', 3.50),
+    (73, '5032', 2.50),
+    (74, '5033', 2.20),
+    (75, '5034', 2.00),
+    (76, '5035', 1.40),
+    (77, '5036', 1.20),
+    (78, '5037', 1.60),
+    (79, '5038', 8.00),
+    (80, '5039', 2.50),
+    (81, '5040', 0.90),
+    (82, '5041', 0.50),
+    (83, '5042', 1.20),
+    (84, '5043', 2.80),
+    (85, '5044', 0.60),
+    (86, '5045', 1.40),
+    (87, '5046', 1.80),
+    (88, '5047', 2.00),
+    (89, '5048', 1.00),
+    (90, '5049', 0.50),
+    (92, '5051', 0.30),
+    (93, '5052', 0.80),
+    (94, '9001', 1.60),
+    (96, '9003', 1.20);
+
+-- 7.1 Un lote viejo por producto, de donde salieron las unidades vendidas. Termina en 0;
+--     su cantidad recibida se ajusta en 7.4 a lo que se vendió.
+INSERT INTO batches (product_id, quantity_received, quantity_remaining, expiration_date,
+                     received_at, unit_cost)
+SELECT p.id, 0, 0, CASE WHEN p.perishable THEN DATEADD('DAY', -1, CURRENT_DATE) END,
+       DATEADD('DAY', -95, CURRENT_TIMESTAMP), p.unit_cost
+FROM demo_sales_rate r JOIN products p ON p.barcode = r.barcode;
+
+-- 7.2 Tres ventas cerradas por día, a las 9, 13 y 17 horas, durante 90 días.
+INSERT INTO sales (cashier_id, created_at, closed_at, total)
+SELECT (SELECT id FROM users WHERE username = 'cajero'), m.moment,
+       DATEADD('MINUTE', 5, m.moment), 0
+FROM (SELECT DATEADD('HOUR', 9 + 4 * t.X, CAST(DATEADD('DAY', -d.X, CURRENT_DATE) AS TIMESTAMP))
+             AS moment
+      FROM SYSTEM_RANGE(1, 90) d, SYSTEM_RANGE(0, 2) t) m;
+
+-- 7.3 Líneas de cada venta. Cada producto se vende en uno de los tres turnos, según su
+--     número. Cada día vende la parte entera de su promedio y, algunos días, una unidad
+--     más; esos días salen de una fórmula fija, así el historial es siempre el mismo y
+--     el promedio se cumple.
+INSERT INTO sale_items (sale_id, product_id, batch_id, quantity, unit_price, discount_percent)
+SELECT u.sale_id, p.id,
+       (SELECT b.id FROM batches b WHERE b.product_id = p.id AND b.quantity_remaining = 0
+        AND b.received_at < DATEADD('DAY', -90, CURRENT_TIMESTAMP)),
+       u.quantity, p.sale_price, 0
+FROM (SELECT s.id AS sale_id, r.barcode,
+             FLOOR(r.units_per_day)
+             + CASE WHEN MOD(DATEDIFF('DAY', CAST(s.created_at AS DATE), CURRENT_DATE) * 17 + r.n * 31, 100)
+                    < (r.units_per_day - FLOOR(r.units_per_day)) * 100 THEN 1 ELSE 0 END AS quantity
+      FROM sales s JOIN demo_sales_rate r ON MOD(r.n, 3) = (HOUR(s.created_at) - 9) / 4) u
+JOIN products p ON p.barcode = u.barcode
+WHERE u.quantity > 0;
+
+-- 7.4 Totales de cada venta y cantidad recibida de cada lote viejo, a partir de las líneas.
+DELETE FROM sales WHERE id NOT IN (SELECT sale_id FROM sale_items);
+UPDATE sales SET total = (SELECT SUM(i.quantity * i.unit_price) FROM sale_items i
+                          WHERE i.sale_id = sales.id);
+UPDATE batches SET quantity_received = (SELECT COALESCE(SUM(i.quantity), 0) FROM sale_items i
+                                        WHERE i.batch_id = batches.id)
+WHERE quantity_remaining = 0 AND received_at < DATEADD('DAY', -90, CURRENT_TIMESTAMP);
+DROP TABLE demo_sales_rate;
