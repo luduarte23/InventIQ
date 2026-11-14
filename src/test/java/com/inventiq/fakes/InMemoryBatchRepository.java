@@ -43,12 +43,17 @@ public class InMemoryBatchRepository implements BatchRepository {
         return batch;
     }
 
-    // La venta no usa estos dos métodos.
+    /** Suma de unidades de los lotes con unidades y no vencidos, como el repositorio real. */
     @Override
     public int availableStock(Long productId, LocalDate today) {
-        return 0;
+        int total = 0;
+        for (Batch batch : findAvailableByProduct(productId, today)) {
+            total += batch.getQuantityRemaining();
+        }
+        return total;
     }
 
+    // La venta no usa este método.
     @Override
     public List<Batch> findExpiringBefore(LocalDate limit) {
         return List.of();

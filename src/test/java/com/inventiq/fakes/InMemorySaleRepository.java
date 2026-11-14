@@ -1,6 +1,7 @@
 package com.inventiq.fakes;
 
 import com.inventiq.domain.model.Sale;
+import com.inventiq.domain.model.SaleItem;
 import com.inventiq.domain.port.SaleRepository;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -40,9 +41,20 @@ public class InMemorySaleRepository implements SaleRepository {
         sales.removeIf(sale -> sale.getId().equals(id));
     }
 
-    // La venta no usa este método (lo usa la Parte C).
+    /** Unidades vendidas del producto desde 'since', contando solo ventas cerradas. */
     @Override
     public int unitsSoldSince(Long productId, Instant since) {
-        return 0;
+        int total = 0;
+        for (Sale sale : sales) {
+            if (!sale.isClosed() || sale.getCreatedAt().isBefore(since)) {
+                continue;
+            }
+            for (SaleItem item : sale.getItems()) {
+                if (item.getProductId().equals(productId)) {
+                    total += item.getQuantity();
+                }
+            }
+        }
+        return total;
     }
 }
