@@ -120,16 +120,28 @@ classDiagram
     class Supplier
     class Product {
         barcode
+        salePrice
+        perishable
+        safetyStock
+        reorderPoint
+        active
         version
     }
     class Batch {
-        quantity
-        expiryDate
+        quantityReceived
+        quantityRemaining
+        expirationDate
+        discountPercent
         version
         +consume()
         +restore()
+        +isExpired(today)
+        +applyDiscount()
     }
     class Sale {
+        createdAt
+        closedAt
+        total
         +open()
         +addItem()
         +close()
@@ -142,7 +154,13 @@ classDiagram
     }
     class PurchaseOrder {
         status
+        needsReview
+        deferredByBudget
+        totalCost
+        +draft()
         +addLine()
+        +updateLine()
+        +removeLine()
         +approve()
         +markSent()
         +registerReception()
@@ -162,13 +180,14 @@ classDiagram
         +resolve()
     }
 
-    Product --> Supplier : proveedor
+    Product --> Supplier : proveedor (opcional)
     Batch --> Product : lote de
+    Batch --> PurchaseOrder : llegó con (opcional)
     Sale *-- SaleItem : contiene
     SaleItem --> Batch : sale de
     Sale --> User : cajero
     PurchaseOrder *-- PurchaseOrderLine : contiene
-    PurchaseOrder --> Supplier : a
+    PurchaseOrder --> Supplier : a (opcional)
     PurchaseOrderLine --> Product : pide
 ```
 
@@ -177,7 +196,12 @@ classDiagram
 Dos grupos de objetos se guardan y se modifican siempre juntos, a través de su objeto raíz:
 
 - **`Sale` + `SaleItem`**: los ítems solo se agregan con `Sale.addItem()`, y una venta cerrada no se modifica. `SaleItem` guarda el precio ya con descuento y el porcentaje aplicado, para que el historial no cambie si el precio cambia después.
-- **`PurchaseOrder` + `PurchaseOrderLine`**: las líneas solo se editan a través del pedido, que valida que su estado lo permita.
+- **`PurchaseOrder` + `PurchaseOrderLine`**: las líneas solo se agregan, cambian o quitan a través del pedido (`addLine`, `updateLine`, `removeLine`), que valida que su estado lo permita y recalcula el costo total. Un pedido sin proveedor queda marcado "por revisar" (`needsReview`), y uno que no cabe en el presupuesto queda marcado como aplazado (`deferredByBudget`).
+
+Otros detalles del modelo:
+
+- **`Product`** puede no tener proveedor (`supplierId` vacío); el sistema lo señala con una alerta. Guarda su punto de reorden y su stock de seguridad.
+- **`Batch`** (lote) guarda cuántas unidades llegaron y cuántas quedan, la fecha de vencimiento (vacía si el producto no es perecedero), el descuento vigente del lote y, si llegó con un pedido, de cuál.
 
 Los cambios de estado de un pedido los controla la propia entidad:
 
@@ -218,7 +242,7 @@ Estas clases reciben datos y devuelven resultados, sin guardar nada ni consultar
 ### Errores y fechas
 
 - **Errores de negocio**: heredan de `DomainException` (`UnknownBarcodeException`, `InsufficientStockException`, `InvalidSaleException`, `InvalidCredentialsException`). Su mensaje está en español y la pantalla lo muestra tal cual, sin interrumpir lo que el usuario estaba haciendo.
-- **Fechas**: el dominio nunca lee la fecha del sistema. Recibe la fecha como parámetro; en la aplicación, la fecha sale de un `Clock` que provee `ClockConfig`. Así las reglas que dependen del tiempo (vencimientos, ventanas de ventas) se prueban con fechas fijas.
+- **Fechas**: el dominio nunca lee la fecha del sistema. Recibe la fecha como parámetro (por ejemplo `Batch.isExpired(today)` o `Sale.open(cashierId, now)`); los servicios la obtienen de un `Clock` que provee `ClockConfig`, con la zona horaria `America/Bogota`. Así las reglas que dependen del tiempo (vencimientos, ventanas de ventas) se prueban con fechas fijas.
 
 ---
 
@@ -361,19 +385,26 @@ sequenceDiagram
         SS-->>PC: Sale
     end
     PC->>SS: scan(id de la venta, código, cantidad)
-    SS->>Repo: busca el producto por código y sus lotes con stock
-    SS->>FA: reparte la cantidad entre los lotes
-    FA-->>SS: BatchAllocation (lotes más antiguos primero)
-    SS->>Repo: descuenta los lotes y guarda los ítems de la venta
-    SS-->>PC: ScanResult
+    SS->>Repo: ProductRepository.findByBarcode(código)
+    SS->>Repo: BatchRepository.findAvailableByProduct(producto, hoy)
+    SS->>FA: allocate(producto, lotes, cantidad, hoy)
+    FA-->>SS: lista de BatchAllocation (lotes más antiguos primero)
+    loop por cada lote asignado
+        SS->>SS: Batch.consume() y Sale.addItem() con el precio del lote
+        SS->>Repo: BatchRepository.save(lote)
+    end
+    SS->>Repo: SaleRepository.save(venta)
+    SS-->>PC: ScanResult (producto, líneas nuevas, total)
     PC-->>C: redirige a /pos con la venta actualizada
 ```
 
 - **El controlador no tiene reglas de negocio**: recibe el formulario, llama al servicio y muestra el resultado. Si el servicio lanza una `DomainException` (código desconocido, stock insuficiente), el controlador muestra el mensaje y la venta en curso sigue intacta.
-- **El servicio coordina**: busca los datos con los repositorios, le pide la decisión a la regla pura (`FifoAllocator`) y guarda el resultado.
-- **La regla decide**: `FifoAllocator` no sabe de bases de datos ni de pantallas.
+- **El servicio coordina**: valida la cantidad, comprueba que la venta exista y siga abierta, busca los datos con los repositorios, le pide la decisión a la regla pura (`FifoAllocator`) y guarda el resultado. Un código inexistente o de un producto inactivo lanza `UnknownBarcodeException` sin tocar nada.
+- **La regla decide**: `FifoAllocator` no sabe de bases de datos ni de pantallas. Si no alcanza el stock, lanza `InsufficientStockException`.
+- **Una línea por lote**: si las unidades salen de dos lotes, la venta tiene dos líneas, cada una con el precio y el descuento de su lote.
+- **Todo o nada**: cada operación del servicio es una transacción (`@Transactional`). Si algo falla a mitad de un escaneo, no queda ningún lote descontado ni ninguna línea guardada.
 - **Cada acción termina en una redirección** a `/pos`, así recargar la página nunca repite un escaneo.
-- **Terminar** (`/pos/finish`) cierra la venta. **Cancelar** (`/pos/cancel`) devuelve las unidades a sus lotes.
+- **Terminar** (`/pos/finish`) cierra la venta; no se puede terminar una venta sin productos. **Cancelar** (`/pos/cancel`) devuelve las unidades a los mismos lotes de donde salieron y borra la venta.
 
 El detalle de la Parte B está en [`parte-b-ventas.md`](parte-b-ventas.md).
 
