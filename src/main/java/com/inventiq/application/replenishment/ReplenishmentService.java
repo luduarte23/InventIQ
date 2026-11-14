@@ -22,4 +22,7 @@ public interface ReplenishmentService {
 
     /** FR-06 */
     BudgetResult prioritizeUnderBudget(List<Long> draftOrderIds, BigDecimal availableBudget);
+
+    /** Estado de reabastecimiento de cada producto activo, para la pantalla del motor. */
+    List<ReorderStatus> reorderOverview();
 }

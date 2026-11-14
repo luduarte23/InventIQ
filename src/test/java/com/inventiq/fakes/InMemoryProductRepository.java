@@ -21,20 +21,26 @@ public class InMemoryProductRepository implements ProductRepository {
         return Optional.empty();
     }
 
+    /** Si ya hay un producto con el mismo id lo reemplaza, como haría la base de datos. */
     @Override
     public Product save(Product product) {
+        products.remove(product);
         products.add(product);
         return product;
     }
 
-    // La venta no usa estos dos métodos.
     @Override
     public Optional<Product> findById(Long id) {
+        for (Product product : products) {
+            if (product.getId().equals(id)) {
+                return Optional.of(product);
+            }
+        }
         return Optional.empty();
     }
 
     @Override
     public List<Product> findAllActive() {
-        return products;
+        return products.stream().filter(Product::isActive).toList();
     }
 }
