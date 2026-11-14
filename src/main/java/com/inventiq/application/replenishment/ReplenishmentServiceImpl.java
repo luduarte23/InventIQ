@@ -16,6 +16,12 @@ import com.inventiq.domain.port.PurchaseOrderRepository;
 import com.inventiq.domain.port.SaleRepository;
 import com.inventiq.domain.port.SettingsRepository;
 import com.inventiq.domain.port.SupplierRepository;
+import com.inventiq.domain.rules.BudgetAllocation;
+import com.inventiq.domain.rules.BudgetCandidate;
+import com.inventiq.domain.rules.BudgetPrioritizer;
+import com.inventiq.domain.rules.MoqCandidate;
+import com.inventiq.domain.rules.MoqCompletion;
+import com.inventiq.domain.rules.MoqCompletionResult;
 import com.inventiq.domain.rules.ReorderPointCalculator;
 import com.inventiq.domain.rules.SalesVelocityCalculator;
 import java.math.BigDecimal;
@@ -134,14 +140,86 @@ public class ReplenishmentServiceImpl implements ReplenishmentService {
         return saved;
     }
 
+    /**
+     * Sugiere productos del mismo proveedor para llegar a su pedido mínimo. Solo sugiere: para
+     * aceptarlos, la pantalla edita las líneas del pedido. Si el presupuesto semanal no alcanza,
+     * no sugiere nada y deja una alerta para que el administrador decida.
+     */
     @Override
+    @Transactional
     public List<OrderLineSuggestion> suggestMoqCompletion(Long orderId) {
-        throw new UnsupportedOperationException("Todavía no implementado");
+        PurchaseOrder order = findOrder(orderId);
+        Optional<Supplier> supplier = order.getSupplierId() == null ? Optional.empty()
+                : suppliers.findById(order.getSupplierId());
+        if (supplier.isEmpty()) {
+            return List.of();
+        }
+        Settings config = settings.get();
+        List<MoqCandidate> candidates = new ArrayList<>();
+        Map<Long, BigDecimal> velocityById = new HashMap<>();
+        for (Product product : products.findAllActive()) {
+            Optional<BigDecimal> velocity = velocityOf(product, config);
+            boolean inOrder = order.getLines().stream()
+                    .anyMatch(line -> line.getProductId().equals(product.getId()));
+            if (supplier.get().getId().equals(product.getSupplierId()) && !inOrder && velocity.isPresent()) {
+                candidates.add(new MoqCandidate(product.getId(), velocity.get(), product.getUnitCost()));
+                velocityById.put(product.getId(), velocity.get());
+            }
+        }
+        int orderUnits = order.getLines().stream().mapToInt(PurchaseOrderLine::getQuantityOrdered).sum();
+        MoqCompletionResult result = new MoqCompletion().complete(supplier.get(), order.getTotalCost(),
+                orderUnits, candidates, config.getReviewPeriodDays(), config.getWeeklyBudget());
+        if (result.blockedByBudget()) {
+            alerts.raise(AlertType.ORDER_BELOW_MOQ_NO_BUDGET, "El pedido a " + supplier.get().getName()
+                    + " no llega al mínimo y el presupuesto no alcanza", "PurchaseOrder", orderId);
+        } else if (!result.suggestions().isEmpty()) {
+            audit.record(AuditAction.MOQ_SUGGESTION_MADE, "PurchaseOrder", orderId,
+                    result.suggestions().size() + " productos sugeridos por " + result.extraCost(), null);
+        }
+        return result.suggestions().stream().map(s -> new OrderLineSuggestion(s.productId(),
+                s.quantity(), s.lineCost(), "Se vende " + velocityById.get(s.productId()).toPlainString()
+                        + " por día; ayuda a llegar al pedido mínimo")).toList();
     }
 
+    /**
+     * Si los borradores cuestan más que el presupuesto, aprueba primero los que más ganancia
+     * dejan por día y marca los demás como aplazados por presupuesto.
+     */
     @Override
+    @Transactional
     public BudgetResult prioritizeUnderBudget(List<Long> draftOrderIds, BigDecimal availableBudget) {
-        throw new UnsupportedOperationException("Todavía no implementado");
+        Settings config = settings.get();
+        List<BudgetCandidate> candidates = new ArrayList<>();
+        for (Long id : draftOrderIds) {
+            PurchaseOrder order = findOrder(id);
+            BigDecimal dailyProfit = BigDecimal.ZERO;
+            for (PurchaseOrderLine line : order.getLines()) {
+                Product product = products.findById(line.getProductId()).orElseThrow();
+                dailyProfit = dailyProfit.add(BudgetPrioritizer.dailyProfit(product.getSalePrice(),
+                        line.getUnitCost(), velocityOf(product, config).orElse(BigDecimal.ZERO)));
+            }
+            candidates.add(new BudgetCandidate(id, order.getTotalCost(), dailyProfit));
+        }
+        BudgetAllocation allocation = new BudgetPrioritizer().prioritize(candidates, availableBudget);
+        for (Long id : allocation.deferredOrderIds()) {
+            PurchaseOrder order = findOrder(id);
+            order.deferByBudget();
+            orders.save(order);
+            audit.record(AuditAction.ORDER_DEFERRED_BY_BUDGET, "PurchaseOrder", id,
+                    "No cabe en el presupuesto de " + availableBudget, null);
+        }
+        for (Long id : allocation.fundedOrderIds()) {
+            PurchaseOrder order = findOrder(id);
+            order.clearBudgetDeferral();
+            orders.save(order);
+        }
+        return new BudgetResult(allocation.fundedOrderIds(), allocation.deferredOrderIds(),
+                allocation.totalFunded());
+    }
+
+    private PurchaseOrder findOrder(Long id) {
+        return orders.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("El pedido " + id + " no existe"));
     }
 
     /** Unidades por día en la ventana de ventas de la configuración (solo ventas cerradas). */

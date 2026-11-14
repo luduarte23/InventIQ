@@ -11,6 +11,7 @@ import com.inventiq.domain.model.Batch;
 import com.inventiq.domain.model.OrderStatus;
 import com.inventiq.domain.model.Product;
 import com.inventiq.domain.model.PurchaseOrder;
+import com.inventiq.domain.model.PurchaseOrderLine;
 import com.inventiq.domain.model.Sale;
 import com.inventiq.domain.model.SaleItem;
 import com.inventiq.domain.model.Settings;
@@ -44,11 +45,12 @@ class ReplenishmentServiceImplTest {
     private final InMemoryPurchaseOrderRepository orders = new InMemoryPurchaseOrderRepository();
     private final InMemoryAuditLogRepository auditLogs = new InMemoryAuditLogRepository();
     private final InMemoryAlertRepository alerts = new InMemoryAlertRepository();
-    // Ventana de 30 días y revisión cada 7 (valores por defecto).
+    // Presupuesto de 500.000, ventana de 30 días y revisión cada 7 (valores por defecto).
+    private final InMemorySettingsRepository settings = new InMemorySettingsRepository(
+            Settings.withDefaults(new BigDecimal("500000"), "+573001234567"));
     private final ReplenishmentServiceImpl service = new ReplenishmentServiceImpl(products, batches,
-            sales, suppliers, orders,
-            new InMemorySettingsRepository(Settings.withDefaults(new BigDecimal("500000"), "+573001234567")),
-            new DatabaseAuditRecorder(auditLogs, CLOCK), new DatabaseAlertService(alerts, CLOCK), CLOCK);
+            sales, suppliers, orders, settings, new DatabaseAuditRecorder(auditLogs, CLOCK),
+            new DatabaseAlertService(alerts, CLOCK), CLOCK);
 
     {
         // El proveedor 1 entrega en 3 días y el 2 en 2 días.
@@ -133,6 +135,56 @@ class ReplenishmentServiceImplTest {
 
         assertTrue(service.generateDraftOrders().isEmpty());
         assertEquals(1, orders.findByStatus(OrderStatus.DRAFT).size());
+    }
+
+    @Test
+    void itSuggestsFastSellingProductsToReachTheSupplierMinimum() {
+        // El proveedor 3 pide 500.000; el borrador va en 400.000 y el producto 2 vende 3 por día.
+        suppliers.add(new Supplier(3L, "Nutresa", "+573005550002", 3, new BigDecimal("500000"), null, true));
+        products.save(product(2L, 3L, 0));
+        sell(2L, 3, 1, 30);
+        PurchaseOrder draft = draft(3L, 1L, 160, "2500");
+
+        List<OrderLineSuggestion> suggestions = service.suggestMoqCompletion(draft.getId());
+
+        // Faltan 100.000 y el producto 2 cuesta 2.300: 44 unidades, tope de 21 (3 por día x 7).
+        assertEquals(1, suggestions.size());
+        assertEquals(21, suggestions.get(0).suggestedQuantity());
+    }
+
+    @Test
+    void withoutBudgetToReachTheMinimumItSuggestsNothingAndRaisesAnAlert() {
+        suppliers.add(new Supplier(3L, "Nutresa", "+573005550002", 3, new BigDecimal("500000"), null, true));
+        products.save(product(2L, 3L, 0));
+        sell(2L, 3, 1, 30);
+        settings.save(Settings.withDefaults(new BigDecimal("400000"), "+573001234567"));
+        PurchaseOrder draft = draft(3L, 1L, 160, "2500");
+
+        assertTrue(service.suggestMoqCompletion(draft.getId()).isEmpty());
+        assertEquals(AlertType.ORDER_BELOW_MOQ_NO_BUDGET, alerts.findUnresolved().get(0).getType());
+    }
+
+    @Test
+    void underBudgetTheMostProfitableDraftGoesFirstAndTheOtherIsDeferred() {
+        // Dos borradores de 230.000 y presupuesto de 300.000: solo cabe uno. Gana el del
+        // producto 2, que se vende 5 por día con margen de 700; el producto 1 no se vende.
+        products.save(product(1L, 1L, 0));
+        products.save(product(2L, 2L, 0));
+        sell(2L, 5, 1, 30);
+        PurchaseOrder slow = draft(1L, 1L, 100, "2300");
+        PurchaseOrder fast = draft(2L, 2L, 100, "2300");
+
+        BudgetResult result = service.prioritizeUnderBudget(List.of(slow.getId(), fast.getId()),
+                new BigDecimal("300000"));
+
+        assertEquals(List.of(fast.getId()), result.fundedOrderIds());
+        assertTrue(orders.findById(slow.getId()).get().isDeferredByBudget());
+    }
+
+    private PurchaseOrder draft(Long supplierId, Long productId, int quantity, String unitCost) {
+        return orders.save(new PurchaseOrder(null, supplierId, OrderStatus.DRAFT, false, false, NOW,
+                null, null, null, List.of(new PurchaseOrderLine(null, null, productId, quantity, 0,
+                        new BigDecimal(unitCost), false))));
     }
 
     /** Producto con un ROP ya guardado y un lote con 'stock' unidades vendibles. */
