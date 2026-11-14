@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import com.inventiq.application.security.AuthenticatedUser;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * Capa de presentación de la venta (B6). Solo recibe, delega en SalesService y responde:
@@ -20,9 +22,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  */
 @Controller
 public class PosController {
-
-    /** Mientras no exista el login (A7), las ventas quedan a nombre del usuario con id 1. */
-    private static final Long CASHIER_ID = 1L;
 
     /** Nombre con el que se guarda la venta en curso en la sesión del cajero. */
     private static final String CURRENT_SALE = "currentSale";
@@ -97,10 +96,17 @@ public class PosController {
     private SaleScreen currentSaleOrStartNew(HttpSession session) {
         SaleScreen sale = (SaleScreen) session.getAttribute(CURRENT_SALE);
         if (sale == null) {
-            Sale started = salesService.startSale(CASHIER_ID);
+            Sale started = salesService.startSale(currentCashierId());
             sale = new SaleScreen(started.getId());
             session.setAttribute(CURRENT_SALE, sale);
         }
         return sale;
+    }
+    
+        /** El id del usuario con sesión iniciada: quien registra la venta (A7). */
+    private Long currentCashierId() {
+        AuthenticatedUser user = (AuthenticatedUser) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        return user.userId();
     }
 }

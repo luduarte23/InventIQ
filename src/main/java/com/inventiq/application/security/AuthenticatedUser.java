@@ -1,10 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-// AuthenticatedUser.java
 package com.inventiq.application.security;
 
 import com.inventiq.domain.model.Role;
+import java.io.Serializable;
 
-public record AuthenticatedUser(Long userId, String username, Role role) {}
+/**
+ * El usuario con sesión iniciada (§6.1). Es Serializable porque Spring Security lo guarda
+ * dentro de la sesión HTTP, y DevTools guarda las sesiones en disco al reiniciar la app.
+ */
+public record AuthenticatedUser(Long userId, String username, Role role) implements Serializable {}
