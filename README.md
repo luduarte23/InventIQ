@@ -75,6 +75,8 @@ InventIQ registra las ventas en tiempo real mediante lectura de código de barra
 
 En el código las clases tienen nombres en inglés. Por ejemplo, `VentasService` es `SalesService`, `NotificadorMensajes` es `MessageNotifier`, y `RepositorioInventario` se divide en un puerto por entidad (`ProductRepository`, `BatchRepository`, `SaleRepository`, etc.). Ver [Estructura del proyecto](#estructura-del-proyecto).
 
+La arquitectura tal como está construida (capas, módulos, modelo de dominio, persistencia, seguridad, decisiones y cómo se verifica) está en [`docs/arquitectura.md`](docs/arquitectura.md).
+
 **Compromisos aceptados:**
 
 - _Escalabilidad horizontal vs. simplicidad_ - un monolito renuncia a escalar cada componente por separado, algo aceptable porque el alcance apunta a negocios de una sola sucursal.
@@ -321,7 +323,7 @@ Un solo proyecto Maven organizado por capas (`com.inventiq`):
 
 Las dependencias van en una sola dirección: `presentación (web, presentation) → application → domain ← infrastructure`. La prueba de ArchUnit lo verifica en cada build.
 
-La documentación de cada parte está en [`docs/`](docs/), por ahora [`docs/parte-b-ventas.md`](docs/parte-b-ventas.md).
+La documentación está en [`docs/`](docs/): [`arquitectura.md`](docs/arquitectura.md) describe el sistema completo y [`parte-b-ventas.md`](docs/parte-b-ventas.md) el detalle de las ventas.
 
 ### Flujo de trabajo
 
