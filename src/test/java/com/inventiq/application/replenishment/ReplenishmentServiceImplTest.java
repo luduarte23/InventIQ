@@ -181,6 +181,24 @@ class ReplenishmentServiceImplTest {
         assertTrue(orders.findById(slow.getId()).get().isDeferredByBudget());
     }
 
+    @Test
+    void theOverviewShowsFirstTheProductsThatNeedAnOrder() {
+        // El producto 7 tiene stock de sobra; el 8 está por debajo de su ROP y vende 2 por día.
+        products.save(productWithStock(7L, 1L, 10, 30));
+        products.save(productWithStock(8L, 1L, 10, 5));
+        sell(8L, 2, 1, 30);
+
+        List<ReorderStatus> rows = service.reorderOverview();
+
+        ReorderStatus first = rows.get(0);
+        assertEquals(8L, first.productId());
+        assertTrue(first.needsReorder());
+        assertEquals(new BigDecimal("2.0000"), first.unitsPerDay());
+        // 2 por día x (3 + 7) días + 4 de seguridad - 5 que hay = 19.
+        assertEquals(19, first.suggestedQuantity());
+        assertEquals(0, rows.get(1).suggestedQuantity());
+    }
+
     private PurchaseOrder draft(Long supplierId, Long productId, int quantity, String unitCost) {
         return orders.save(new PurchaseOrder(null, supplierId, OrderStatus.DRAFT, false, false, NOW,
                 null, null, null, List.of(new PurchaseOrderLine(null, null, productId, quantity, 0,

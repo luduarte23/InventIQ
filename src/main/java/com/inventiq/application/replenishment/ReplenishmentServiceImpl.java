@@ -30,6 +30,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -215,6 +216,31 @@ public class ReplenishmentServiceImpl implements ReplenishmentService {
         }
         return new BudgetResult(allocation.fundedOrderIds(), allocation.deferredOrderIds(),
                 allocation.totalFunded());
+    }
+
+    /** Stock, velocidad, ROP y cantidad sugerida de cada producto; primero los que hay que pedir. */
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReorderStatus> reorderOverview() {
+        Settings config = settings.get();
+        Map<Long, Supplier> supplierById = supplierById();
+        LocalDate today = LocalDate.now(clock);
+        List<ReorderStatus> rows = new ArrayList<>();
+        for (Product product : products.findAllActive()) {
+            int stock = batches.availableStock(product.getId(), today);
+            Optional<BigDecimal> velocity = velocityOf(product, config);
+            boolean needsReorder = product.needsReorder(stock);
+            int quantity = needsReorder ? ReorderPointCalculator.suggestedQuantity(velocity,
+                    leadTimeOf(product, supplierById), config.getReviewPeriodDays(),
+                    product.getSafetyStock(), stock) : 0;
+            Supplier supplier = supplierById.get(product.getSupplierId());
+            rows.add(new ReorderStatus(product.getId(), product.getBarcode(), product.getName(),
+                    supplier == null ? "Sin proveedor" : supplier.getName(), stock,
+                    velocity.orElse(null), product.getReorderPoint(), needsReorder, quantity));
+        }
+        rows.sort(Comparator.comparing(ReorderStatus::needsReorder).reversed()
+                .thenComparing(ReorderStatus::name));
+        return rows;
     }
 
     private PurchaseOrder findOrder(Long id) {
