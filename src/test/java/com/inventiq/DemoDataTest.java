@@ -1,6 +1,7 @@
 package com.inventiq;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.inventiq.domain.port.SettingsRepository;
 import java.math.BigDecimal;
@@ -37,6 +38,18 @@ class DemoDataTest {
         assertEquals(3, count("select count(*) from products where supplier_id is null"));
         // Ningún producto se vende por debajo de su costo.
         assertEquals(0, count("select count(*) from products where sale_price < unit_cost"));
+    }
+
+    @Test
+    void everyProductHasStockAndSomeBatchesAreAboutToExpire() {
+        // Todos los productos tienen al menos un lote vendible: con unidades y sin vencer.
+        assertEquals(0, count("select count(*) from products p where not exists ("
+                + "select 1 from batches b where b.product_id = p.id and b.quantity_remaining > 0"
+                + " and (b.expiration_date is null or b.expiration_date >= current_date))"));
+        // Hay lotes por vencer en los próximos 7 días y dos lotes ya vencidos.
+        assertTrue(count("select count(*) from batches where expiration_date"
+                + " between current_date and dateadd('DAY', 7, current_date)") > 0);
+        assertEquals(2, count("select count(*) from batches where expiration_date < current_date"));
     }
 
     private int count(String sql) {
