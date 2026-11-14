@@ -93,7 +93,7 @@ En el código las clases tienen nombres en inglés. Por ejemplo, `VentasService`
 
 ### Despliegue
 
-_¡En desarrollo!_ La aplicación ya se empaqueta como un único JAR autocontenido (ver [Primeros pasos](#primeros-pasos)).
+La aplicación se empaqueta como un único JAR autocontenido (`inventiq.jar`) que solo necesita Java 21: incluye el servidor web y usa una base de datos embebida guardada en archivo. Ver [Ejecutar el JAR](#ejecutar-el-jar).
 
 ---
 
@@ -106,11 +106,10 @@ _¡En desarrollo!_ La aplicación ya se empaqueta como un único JAR autoconteni
 | Vistas         | Thymeleaf, renderizadas en el servidor                                                                      |
 | Build          | Maven, con el wrapper (`./mvnw`) incluido                                                                   |
 | Base de datos  | H2 embebida, guardada en archivo; esquema con migraciones versionadas de Flyway                             |
-| Autenticación  | Por sesión, restringida por rol (Administrador / Cajero) - _en desarrollo_                                  |
-| API externa    | Sandbox de WhatsApp de Twilio, detrás de la interfaz `MessageNotifier` - _en desarrollo_ (por ahora, los    |
-|                  mensajes se escriben en el log)                                                                             |
-| Pruebas        | JUnit, ArchUnit 1.5 y JaCoCo 0.8.16 (el build falla si la cobertura del dominio baja del 80 %)              |
-| CI             | GitHub Actions: `./mvnw verify` en cada pull request y en cada push a `main`                                |
+| Autenticación  | Spring Security: por sesión, restringida por rol (Administrador / Cajero), contraseñas con hash BCrypt      |
+| API externa    | Sandbox de WhatsApp de Twilio, detrás de la interfaz `MessageNotifier` - _en desarrollo_ (por ahora, los mensajes se escriben en el log) |
+| Pruebas        | JUnit, MockMvc con Spring Security Test, ArchUnit 1.5 y JaCoCo 0.8.16 (el build falla si la cobertura del dominio baja del 80 %) |
+| CI             | GitHub Actions: `./mvnw verify` en cada pull request y en cada push a `main`; guarda el reporte de cobertura y el JAR ejecutable |
 
 ---
 
@@ -132,7 +131,7 @@ Este proyecto usó asistencia de IA durante el desarrollo. El código asistido p
 | Herramienta        | Partes                                                                                                                                                                                                                                                                                  | Propósito                                                                                                                          |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Claude             | Entrega 1                                                                                                                                                                                                                                                                               | Validar la arquitectura frente a las restricciones obligatorias del stack                                                          |
-| Claude (claude.ai) | Parte A: configuración de H2 y Flyway y migración `V1` (A1); entidades, enums, excepciones, puertos e interfaces de servicio del dominio (A2); perfil de pruebas, JaCoCo, pruebas unitarias del dominio, ArchUnit, workflow de GitHub Actions y protección de `main` (A3); este README (A4) | Guía paso a paso y generación de código y configuración. El integrante revisó, compiló y ejecutó cada cambio antes de hacer commit |
+| Claude (claude.ai) | Parte A: configuración de H2 y Flyway y migración `V1` (A1); entidades, enums, excepciones, puertos e interfaces de servicio del dominio (A2); perfil de pruebas, JaCoCo, pruebas unitarias del dominio, ArchUnit, workflow de GitHub Actions y protección de `main` (A3); este README (A4); persistencia JPA de usuarios, proveedores, pedidos, configuración, auditoría y alertas (A5); notificador simulado y perfil `demo` (A6); inicio de sesión con roles (A7); pruebas de seguridad (A8); JAR ejecutable (A9) | Guía paso a paso y generación de código y configuración. El integrante revisó, compiló y ejecutó cada cambio antes de hacer commit |
 | Claude Code        | Parte B: regla FIFO, servicio de ventas, persistencia provisional de productos, lotes y ventas, pantalla de ventas y sus pruebas                                                                                                                                                        | Implementar las tareas B2 a B4, B6 y B10 del plan de trabajo. El autor revisó cada cambio antes de subirlo                         |
 | _Por completar_    | Parte C: motor de reabastecimiento                                                                                                                                                                                                                                                      | _Por completar_                                                                                                                    |
 | _Por completar_    | Parte D: compras y administración                                                                                                                                                                                                                                                       | _Por completar_                                                                                                                    |
@@ -164,11 +163,11 @@ cd InventIQ
 .\mvnw.cmd spring-boot:run      # Windows (PowerShell)
 ```
 
-Abre <http://localhost:8080/pos>. La primera ejecución descarga las dependencias, así que tarda unos minutos.
+Abre <http://localhost:8080> e inicia sesión (ver [Inicio de sesión y roles](#inicio-de-sesión-y-roles)). La primera ejecución descarga las dependencias, así que tarda unos minutos.
 
 La base de datos se crea en `./data/` y Flyway aplica las migraciones al arrancar. Para empezar desde cero, detén la aplicación y borra la carpeta `data/`.
 
-La consola de H2 está en <http://localhost:8080/h2-console> (JDBC URL `jdbc:h2:file:./data/inventiqdb`, usuario `sa`, sin contraseña).
+La consola de H2 está en <http://localhost:8080/h2-console> y solo abre con la sesión del administrador (JDBC URL `jdbc:h2:file:./data/inventiqdb`, usuario `sa`, sin contraseña).
 
 **Con datos demo** (perfil `demo`, en una base aparte: `./data/inventiq-demo`):
 
@@ -181,13 +180,45 @@ Los datos demo están en `src/main/resources/db/demo/R__datos_demo.sql` y solo s
 
 Los mensajes de WhatsApp todavía no se envían: el notificador por defecto (`inventiq.notifier=log`) los escribe en la consola con la etiqueta `[WhatsApp simulado]`.
 
-También puedes empaquetar la aplicación y ejecutarla como un único JAR:
+### Ejecutar el JAR
+
+El JAR ejecutable contiene la aplicación completa. Solo necesita **Java 21**; no requiere Maven ni el código fuente.
+
+**Obtenerlo:**
+
+- Compilándolo: `./mvnw clean verify` (en PowerShell, `.\mvnw.cmd clean verify`) genera `target/inventiq.jar`.
+- Desde GitHub: en la pestaña _Actions_, abre la última ejecución en verde de `main` y descarga el artifact `inventiq-jar` (se conserva 14 días).
+
+**Arrancarlo:**
 
 ```bash
-./mvnw package
-java -jar target/inventiq-0.0.1-SNAPSHOT.jar
+java -jar inventiq.jar
 ```
-## Inicio de sesión y roles
+
+Luego abre <http://localhost:8080> e inicia sesión.
+
+La base de datos se crea en la carpeta `data`, **al lado de donde se ejecuta el JAR**. Ejecútalo siempre desde la misma carpeta; la copia de seguridad consiste en copiar la carpeta `data` con la aplicación detenida.
+
+**Opciones** (se escriben después del nombre del JAR):
+
+| Opción                              | Para qué                                |
+| ----------------------------------- | --------------------------------------- |
+| `--server.port=9090`                | Usar otro puerto                        |
+| `--spring.profiles.active=demo`     | Datos de ejemplo, en una base separada  |
+| `--spring.h2.console.enabled=false` | Desactivar la consola de H2             |
+| `--spring.jpa.show-sql=false`       | No escribir el SQL en el log            |
+
+**Instalación en la tienda:** antes del **primer** arranque, define las contraseñas iniciales con variables de entorno (PowerShell):
+
+```powershell
+$env:INVENTIQ_INITIALUSERS_ADMINPASSWORD = "una-clave-segura"
+$env:INVENTIQ_INITIALUSERS_CASHIERPASSWORD = "otra-clave-segura"
+java -jar inventiq.jar --spring.h2.console.enabled=false --spring.jpa.show-sql=false
+```
+
+Las contraseñas solo se toman al crear los usuarios en una base nueva; después quedan guardadas (con hash) en la base y las variables ya no son necesarias.
+
+### Inicio de sesión y roles
 
 La aplicación exige iniciar sesión. Al arrancar por primera vez se crean dos usuarios:
 
@@ -204,16 +235,18 @@ La aplicación exige iniciar sesión. Al arrancar por primera vez se crean dos u
   `infrastructure/security/SecurityConfig.java`.
 - Si después de actualizar el código el login no acepta estas contraseñas, borra la base local
   (`data/inventiqdb*`) y vuelve a arrancar.
-  
+
 ### Pantallas
 
 La interfaz de usuario está en español.
 
-| Pantalla     | URL    | Qué hace                                                                                                    |
-| ------------ | ------ | ----------------------------------------------------------------------------------------------------------- |
-| Ventas (POS) | `/pos` | Vender con un lector USB o escribiendo el código; el stock se descuenta en orden FIFO. Permite terminar o cancelar la venta |
+| Pantalla          | URL              | Quién entra            | Qué hace                                                                                                    |
+| ----------------- | ---------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Inicio de sesión  | `/login`         | Todos                  | Pide usuario y contraseña. Después de entrar, lleva a la pantalla de ventas                                 |
+| Ventas (POS)      | `/pos`           | Cajero y administrador | Vender con un lector USB o escribiendo el código; el stock se descuenta en orden FIFO. Permite terminar o cancelar la venta. La venta queda a nombre del usuario con sesión iniciada |
+| Reabastecimiento  | `/replenishment` | Administrador          | Sugerencias de reabastecimiento y creación de borradores de pedido                                          |
 
-Las demás pantallas (inventario, reabastecimiento, pedidos, productos e inicio de sesión) están en desarrollo. Mientras no exista el inicio de sesión, las ventas quedan a nombre del usuario con id 1.
+Las demás pantallas (inventario, pedidos y productos) están en desarrollo.
 
 ### Ejecutar las pruebas
 
@@ -233,7 +266,7 @@ El reporte de cobertura se genera en `target/site/jacoco/index.html`. El CI tamb
 - `./mvnw verify` falla si la cobertura de líneas del paquete `domain` baja del 80 %.
 - Una prueba de ArchUnit falla si el dominio importa Spring, JPA o Twilio, si llama a `LocalDate.now()` o `Instant.now()`, o si una capa depende de otra en la dirección equivocada.
 
-## Pruebas de seguridad
+### Pruebas de seguridad
 
 Las reglas de acceso se verifican automáticamente en cada `verify`:
 
@@ -284,9 +317,9 @@ Un solo proyecto Maven organizado por capas (`com.inventiq`):
 | `domain.port`    | Interfaces que necesita el dominio: repositorios, notificador, auditoría y alertas.                    |
 | `application`    | Servicios de cada módulo (`security`, `pos`, `pricing`, `replenishment`, `purchasing`).                |
 | `infrastructure` | Persistencia JPA (entidades, repositorios y adaptadores), configuración y, más adelante, el adaptador de Twilio. |
-| `web`            | Controladores y vistas Thymeleaf (hoy, la pantalla de ventas).                                         |
+| `web`, `presentation` | Controladores y vistas Thymeleaf: ventas y reabastecimiento en `web`; inicio de sesión en `presentation`. Las dos son la capa de presentación. |
 
-Las dependencias van en una sola dirección: `web → application → domain ← infrastructure`. La prueba de ArchUnit lo verifica en cada build.
+Las dependencias van en una sola dirección: `presentación (web, presentation) → application → domain ← infrastructure`. La prueba de ArchUnit lo verifica en cada build.
 
 La documentación de cada parte está en [`docs/`](docs/), por ahora [`docs/parte-b-ventas.md`](docs/parte-b-ventas.md).
 
