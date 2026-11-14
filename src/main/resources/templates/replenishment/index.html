@@ -7,7 +7,19 @@
 </head>
 <body>
 <h1>Reabastecimiento</h1>
+<p th:if="${message}" th:text="${message}" style="color: darkgreen;"></p>
 <p th:text="${toOrder + ' de ' + rows.size() + ' productos están en su punto de reorden o por debajo.'}"></p>
+<form method="post" th:action="@{/replenishment/drafts}">
+    <button type="submit">Generar borradores</button>
+</form>
+
+<!-- Borradores que se acaban de generar. El administrador los revisa y aprueba en Pedidos. -->
+<div th:each="draft : ${drafts}">
+    <h3 th:text="${draft.supplier() + ': $ ' + draft.total()}"></h3>
+    <ul><li th:each="line : ${draft.lines()}" th:text="${line}"></li></ul>
+    <p th:unless="${draft.moqSuggestions().isEmpty()}">Para llegar al pedido mínimo se sugiere agregar:</p>
+    <ul><li th:each="s : ${draft.moqSuggestions()}" th:text="${s}"></li></ul>
+</div>
 
 <!-- En pantallas angostas la tabla se desplaza de lado. Los que hay que pedir van primero. -->
 <div style="overflow-x: auto;">
