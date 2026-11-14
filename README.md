@@ -233,6 +233,46 @@ El reporte de cobertura se genera en `target/site/jacoco/index.html`. El CI tamb
 - `./mvnw verify` falla si la cobertura de líneas del paquete `domain` baja del 80 %.
 - Una prueba de ArchUnit falla si el dominio importa Spring, JPA o Twilio, si llama a `LocalDate.now()` o `Instant.now()`, o si una capa depende de otra en la dirección equivocada.
 
+## Pruebas de seguridad
+
+Las reglas de acceso se verifican automáticamente en cada `verify`:
+
+| Prueba | Qué comprueba |
+|---|---|
+| `AccessRulesTest` | Sin sesión todo lleva al login; el cajero solo usa `/pos`; el administrador entra a todo |
+| `LoginFlowTest` | Login real con los usuarios iniciales, rechazos, cierre de sesión y token CSRF |
+| `PosControllerCashierTest` | La venta queda a nombre del usuario con sesión iniciada |
+
+Para probar una pantalla protegida con MockMvc se usa el ayudante `TestUsers`
+(`src/test/java/com/inventiq/support`):
+
+```java
+@SpringBootTest
+@AutoConfigureMockMvc   // org.springframework.boot.webmvc.test.autoconfigure
+class MiPantallaTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    void elAdminPuedeVerla() throws Exception {
+        mockMvc.perform(get("/mi-pantalla").with(TestUsers.admin()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void elAdminPuedeEnviarElFormulario() throws Exception {
+        mockMvc.perform(post("/mi-pantalla").with(TestUsers.admin()).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+    }
+}
+```
+
+- `TestUsers.admin()` y `TestUsers.cashier()` hacen que la petición llegue con sesión iniciada.
+- Todo `post` necesita además `.with(csrf())`; sin él responde 403.
+- No usar `@WithMockUser`: los controladores esperan un `AuthenticatedUser`.
+- Al agregar una pantalla nueva, añadir su ruta a `AccessRulesTest`.
+
 ### Estructura del proyecto
 
 Un solo proyecto Maven organizado por capas (`com.inventiq`):
