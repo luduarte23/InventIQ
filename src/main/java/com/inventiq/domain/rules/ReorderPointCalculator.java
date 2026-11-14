@@ -7,8 +7,8 @@ import java.util.Optional;
 
 /**
  * Calcula el punto de reorden (ROP) de un producto: el nivel de stock en el que hay que
- * volver a pedir para no quedarse sin unidades mientras llega el pedido.
- * El resultado se guarda en Product, y Product.needsReorder dice si ya toca pedir.
+ * volver a pedir para no quedarse sin unidades mientras llega el pedido, y cuántas
+ * unidades pedir. El ROP se guarda en Product, y Product.needsReorder dice si ya toca pedir.
  */
 public final class ReorderPointCalculator {
 
@@ -32,6 +32,28 @@ public final class ReorderPointCalculator {
             return safetyStock;
         }
         return unitsSoldIn(unitsPerDay.get(), leadTimeDays) + safetyStock;
+    }
+
+    /**
+     * Cantidad a pedir: lo que se vende mientras llega el pedido y hasta la siguiente
+     * revisión, más el stock de seguridad, menos lo que ya hay vendible.
+     * Siempre es al menos 1, porque solo se usa cuando el producto ya necesita pedido.
+     *
+     * @param unitsPerDay velocidad de ventas; vacía cuenta como cero, y entonces se pide
+     *                    lo que falta para llegar al stock de seguridad
+     */
+    public static int suggestedQuantity(Optional<BigDecimal> unitsPerDay, int leadTimeDays,
+                                        int reviewPeriodDays, int safetyStock,
+                                        int availableStock) {
+        Objects.requireNonNull(unitsPerDay, "unitsPerDay es obligatorio");
+        requireNonNegative(leadTimeDays, "leadTimeDays");
+        requireNonNegative(reviewPeriodDays, "reviewPeriodDays");
+        requireNonNegative(safetyStock, "safetyStock");
+        requireNonNegative(availableStock, "availableStock");
+        int coverage = unitsPerDay.isEmpty()
+                ? 0
+                : unitsSoldIn(unitsPerDay.get(), leadTimeDays + reviewPeriodDays);
+        return Math.max(1, coverage + safetyStock - availableStock);
     }
 
     /**
