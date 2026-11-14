@@ -28,4 +28,18 @@ class DemoDataTest {
                 "select count(*) from users where username = 'cajero'", Integer.class));
         assertEquals(new BigDecimal("500000.00"), settings.get().getWeeklyBudget());
     }
+
+    @Test
+    void theDemoCatalogHasSuppliersAndProducts() {
+        assertEquals(5, count("select count(*) from suppliers"));
+        assertEquals(96, count("select count(*) from products"));
+        // Tres productos sin proveedor, para el pedido "por revisar".
+        assertEquals(3, count("select count(*) from products where supplier_id is null"));
+        // Ningún producto se vende por debajo de su costo.
+        assertEquals(0, count("select count(*) from products where sale_price < unit_cost"));
+    }
+
+    private int count(String sql) {
+        return jdbc.queryForObject(sql, Integer.class);
+    }
 }
