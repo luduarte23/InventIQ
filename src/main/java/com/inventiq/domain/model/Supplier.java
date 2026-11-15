@@ -31,6 +31,17 @@ public class Supplier {
         return minOrderAmount != null || minOrderUnits != null;
     }
 
+    public void rename(String newName) {
+        this.name = requireText(newName, "name");
+    }
+
+    /** Cualquiera de los dos mínimos puede ser null: sin mínimo en dinero o en unidades. */
+    public void changeMinimumOrder(BigDecimal newMinOrderAmount, Integer newMinOrderUnits) {
+        this.minOrderAmount = validateMinAmount(newMinOrderAmount);
+        this.minOrderUnits = validateMinUnits(newMinOrderUnits);
+    }
+
+
     public void changeLeadTime(int newLeadTimeDays) {
         this.leadTimeDays = requireNonNegative(newLeadTimeDays, "leadTimeDays");
     }
