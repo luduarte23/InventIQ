@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!--
+  Piezas compartidas por todas las pantallas (D1). Este archivo no se muestra solo:
+  cada plantilla toma de aquí lo que necesita con th:replace.
+-->
+
+<!-- 1. Cabecera común: charset, viewport (responsive), título y la hoja de estilos. -->
+<head th:fragment="head(titulo)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${titulo + ' · InventIQ'}">InventIQ</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+
+<body>
+
+<!-- 2. Barra superior con el menú según el rol, el usuario y el botón de cerrar sesión.
+        isAdmin y username los pone LayoutModelAdvice en el modelo de todas las páginas. -->
+<header class="barra" th:fragment="barra">
+    <span class="marca">InventIQ</span>
+
+    <nav>
+        <a th:href="@{/pos}">Ventas</a>
+        <!-- Solo el administrador ve las pantallas de C y D (NFR-03). -->
+        <a th:if="${isAdmin}" th:href="@{/replenishment}">Reabastecimiento</a>
+    </nav>
+
+    <div class="usuario">
+        <span th:text="${username}">usuario</span>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit">Salir</button>
+        </form>
+    </div>
+</header>
+
+</body>
+</html>
