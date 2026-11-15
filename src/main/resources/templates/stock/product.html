@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Stock')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: barra}"></header>
+
+<main class="contenido">
+    <h1 th:text="${product.name()}">Yogur de fresa</h1>
+    <p th:text="${'Código ' + product.barcode() + ' · stock vendible: ' + product.availableStock()}"></p>
+    <p class="mensaje aviso" th:if="${message}" th:text="${message}">Mensaje</p>
+    <p class="mensaje error" th:if="${error}" th:text="${error}">Error</p>
+
+    <p th:if="${batches.isEmpty()}">
+        Este producto no tiene lotes vigentes. El stock nuevo entra al recibir un pedido.
+    </p>
+
+    <!-- Un formulario por lote: se escribe cuántas unidades hay de verdad y el motivo. -->
+    <div class="tabla-scroll" th:unless="${batches.isEmpty()}">
+        <table>
+            <thead>
+            <tr><th>Lote</th><th>Vence</th><th>Recibidas</th><th>Quedan</th><th>Ajustar a</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="b : ${batches}">
+                <td th:text="${b.id}">3</td>
+                <td th:text="${b.expirationDate == null} ? 'No vence' : ${#temporals.format(b.expirationDate, 'dd/MM/yyyy')}">20/12/2026</td>
+                <td th:text="${b.quantityReceived}">50</td>
+                <td th:text="${b.quantityRemaining}">12</td>
+                <td>
+                    <form method="post" th:action="@{/stock/{p}/batches/{b}(p=${product.productId()}, b=${b.id})}">
+                        <input type="number" name="newQuantity" min="0" th:value="${b.quantityRemaining}" required>
+                        <input type="text" name="reason" placeholder="Motivo (obligatorio)" required>
+                        <button type="submit">Ajustar</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p><a th:href="@{/stock}">Volver a la lista</a></p>
+</main>
+</body>
+</html>
