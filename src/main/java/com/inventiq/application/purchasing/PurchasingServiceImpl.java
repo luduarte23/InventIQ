@@ -277,8 +277,18 @@ public class PurchasingServiceImpl implements PurchasingService {
     }
 
     @Override
+    @Transactional
     public PurchaseOrder approveOrder(Long orderId, Long adminUserId) {
-        throw new UnsupportedOperationException("Pendiente: D7");
+        PurchaseOrder order = getOrder(orderId);
+        if (order.getSupplierId() == null) {
+            throw new IllegalArgumentException("El pedido " + orderId + " no tiene proveedor: "
+                    + "asígnale uno a sus productos y genera los borradores de nuevo");
+        }
+        order.approve(Instant.now(clock));
+        PurchaseOrder saved = orders.save(order);
+        audit.record(AuditAction.ORDER_APPROVED, "PurchaseOrder", orderId,
+                saved.getLines().size() + " productos por $ " + saved.getTotalCost(), adminUserId);
+        return saved;
     }
 
     @Override

@@ -276,6 +276,38 @@ class PurchasingServiceImplTest {
         assertEquals(1, service.getOrder(order.getId()).getLines().size());
     }
 
+    @Test
+    void onlyADraftCanBeEdited() {
+        PurchaseOrder order = draftOf10();
+        service.approveOrder(order.getId(), ADMIN);
+
+        assertThrows(IllegalStateException.class, () -> service.updateOrderLines(order.getId(),
+                List.of(new OrderLineEdit(7L, 12, false))));
+    }
+
+    @Test
+    void approvingMovesTheDraftToApprovedAndIsAudited() {
+        PurchaseOrder order = draftOf10();
+
+        PurchaseOrder approved = service.approveOrder(order.getId(), ADMIN);
+
+        assertEquals(OrderStatus.APPROVED, approved.getStatus());
+        assertEquals(NOW, approved.getApprovedAt());
+        AuditLog entry = onlyAuditEntry();
+        assertEquals(AuditAction.ORDER_APPROVED, entry.action());
+        assertEquals("1 productos por $ 21000.00", entry.details());
+    }
+
+    @Test
+    void aDraftWithoutSupplierCannotBeApproved() {
+        PurchaseOrder noSupplier = PurchaseOrder.draft(null, NOW);
+        noSupplier.addLine(new PurchaseOrderLine(null, null, 7L, 10, 0, new BigDecimal("2100"), false));
+        Long id = orders.save(noSupplier).getId();
+
+        assertThrows(IllegalArgumentException.class, () -> service.approveOrder(id, ADMIN));
+        assertEquals(OrderStatus.DRAFT, service.getOrder(id).getStatus());
+    }
+
     private AuditLog onlyAuditEntry() {
         List<AuditLog> entries = auditLogs.findRecent(10);
         assertEquals(1, entries.size());
