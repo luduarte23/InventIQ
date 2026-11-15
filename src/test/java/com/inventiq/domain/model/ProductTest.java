@@ -160,4 +160,27 @@ class ProductTest {
         return new Product(null, "7702001000012", "Yogur de fresa", PRICE, COST,
                 true, null, 4, 0, true, null);
     }
+
+        // --- Cambios de D4: corregir código de barras y "perecedero" ---
+
+    @Test
+    void theBarcodeCanBeCorrectedButNotLeftEmpty() {
+        Product product = new Product(1L, "7702001000012", "Yogur de fresa", PRICE, COST,
+                true, null, 0, 0, true, null);
+
+        product.changeBarcode("7702001000099");
+
+        assertEquals("7702001000099", product.getBarcode());
+        assertThrows(IllegalArgumentException.class, () -> product.changeBarcode(" "));
+    }
+
+    @Test
+    void thePerishableFlagCanBeChanged() {
+        Product product = new Product(1L, "7702001000012", "Yogur de fresa", PRICE, COST,
+                true, null, 0, 0, true, null);
+
+        product.changePerishable(false);
+
+        assertFalse(product.isPerishable());
+    }
 }

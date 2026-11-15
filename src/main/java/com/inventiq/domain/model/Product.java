@@ -41,6 +41,15 @@ public class Product {
         this.salePrice = requireNonNegative(newSalePrice, "salePrice");
         this.unitCost = requireNonNegative(newUnitCost, "unitCost");
     }
+    
+    public void changeBarcode(String newBarcode) {
+        this.barcode = requireText(newBarcode, "barcode");
+    }
+
+    public void changePerishable(boolean newPerishable) {
+        this.perishable = newPerishable;
+    }
+
 
     public void rename(String newName) {
         this.name = requireText(newName, "name");
