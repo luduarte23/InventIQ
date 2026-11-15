@@ -5,11 +5,15 @@
 // SupplierRepository.java
 package com.inventiq.domain.port;
 
-import com.inventiq.domain.model.Supplier;
 import java.util.List;
 import java.util.Optional;
+
+import com.inventiq.domain.model.Supplier;
 
 public interface SupplierRepository {
     Optional<Supplier> findById(Long id);
     List<Supplier> findAllActive();
+    /** Activos e inactivos, ordenados por nombre. */
+    List<Supplier> findAll();
+    Supplier save(Supplier supplier);
 }

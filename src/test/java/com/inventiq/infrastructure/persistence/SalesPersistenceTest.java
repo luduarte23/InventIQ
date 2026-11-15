@@ -1,7 +1,19 @@
 package com.inventiq.infrastructure.persistence;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.inventiq.domain.model.Batch;
 import com.inventiq.domain.model.Product;
@@ -10,17 +22,9 @@ import com.inventiq.domain.model.SaleItem;
 import com.inventiq.infrastructure.persistence.adapter.BatchRepositoryAdapter;
 import com.inventiq.infrastructure.persistence.adapter.ProductRepositoryAdapter;
 import com.inventiq.infrastructure.persistence.adapter.SaleRepositoryAdapter;
+
 import jakarta.persistence.EntityManager;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
+
 
 /**
  * Prueba la persistencia (B3) contra H2 con las tablas reales de Flyway.
@@ -45,6 +49,19 @@ class SalesPersistenceTest {
     void setUp() {
         productId = products.save(new Product(null, "7702001000012", "Yogur de fresa", new BigDecimal("3200"),
                 new BigDecimal("2100"), true, null, 0, 0, true, null)).getId();
+    }
+
+
+    @Test
+    void findAllIncludesInactiveProducts() {
+        Product retired = products.save(new Product(null, "7702001000099", "Avena retirada",
+                new BigDecimal("2500"), new BigDecimal("1500"), false, null, 0, 0, false, null));
+
+        List<Long> ids = products.findAll().stream().map(Product::getId).toList();
+
+        assertTrue(ids.contains(productId));
+        assertTrue(ids.contains(retired.getId()));
+        assertFalse(products.findAllActive().stream().anyMatch(p -> p.getId().equals(retired.getId())));
     }
 
     @Test

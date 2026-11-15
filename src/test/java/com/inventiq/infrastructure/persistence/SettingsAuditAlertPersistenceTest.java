@@ -1,10 +1,19 @@
 package com.inventiq.infrastructure.persistence;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.inventiq.domain.model.Alert;
 import com.inventiq.domain.model.AlertType;
@@ -14,15 +23,8 @@ import com.inventiq.domain.model.Settings;
 import com.inventiq.infrastructure.persistence.adapter.AlertRepositoryAdapter;
 import com.inventiq.infrastructure.persistence.adapter.AuditLogRepositoryAdapter;
 import com.inventiq.infrastructure.persistence.adapter.SettingsRepositoryAdapter;
+
 import jakarta.persistence.EntityManager;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Prueba los adaptadores de Settings, AuditLog y Alert (A5) contra H2 con las tablas
@@ -130,6 +132,19 @@ class SettingsAuditAlertPersistenceTest {
         assertFalse(unresolved.get(0).isResolved());
     }
 
+    @Test
+    void anAlertFoundByIdCanBeResolved() {
+        Alert saved = alerts.save(Alert.raise(AlertType.LOW_STOCK, "Quedan 2 yogures", "Product", 1L, T1));
+
+        Alert found = alerts.findById(saved.getId()).get();
+        found.resolve();
+        alerts.save(found);
+        reloadFromDatabase();
+
+        assertTrue(alerts.findById(saved.getId()).get().isResolved());
+        assertTrue(alerts.findById(999L).isEmpty());
+    }
+    
     @Test
     void anAlertKeepsItsRelatedEntityOrNone() {
         alerts.save(Alert.raise(AlertType.LOW_STOCK, "Quedan 2 yogures", "Product", 1L, T1));
