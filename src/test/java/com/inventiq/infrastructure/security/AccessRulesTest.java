@@ -68,7 +68,7 @@ class AccessRulesTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/replenishment", "/admin", "/h2-console", "/ruta-que-no-existe"})
+    @ValueSource(strings = {"/replenishment", "/products", "/admin", "/h2-console", "/ruta-que-no-existe"})
     void cashierIsForbiddenEverywhereElse(String url) throws Exception {
         mockMvc.perform(get(url).with(TestUsers.cashier()))
                 .andExpect(status().isForbidden());
@@ -86,9 +86,22 @@ class AccessRulesTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void cashierCannotChangeProducts() throws Exception {
+        mockMvc.perform(post("/products/1/active").param("active", "false")
+                        .with(TestUsers.cashier()).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+
     // ---------- Administrador ----------
 
-    
+
+    @Test
+    void adminCanOpenProducts() throws Exception {
+        mockMvc.perform(get("/products").with(TestUsers.admin())).andExpect(status().isOk());
+    }
+
     @Test
     void homeSendsTheAdminToTheAdminHome() throws Exception {
         mockMvc.perform(get("/").with(TestUsers.admin()))
