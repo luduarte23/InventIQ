@@ -5,9 +5,11 @@
 // PurchasingService.java
 package com.inventiq.application.purchasing;
 
+import java.util.List;
+
+import com.inventiq.domain.model.Batch;
 import com.inventiq.domain.model.PurchaseOrder;
 import com.inventiq.domain.model.Settings;
-import java.util.List;
 
 public interface PurchasingService {
 
@@ -18,6 +20,9 @@ public interface PurchasingService {
 
     /** FR-08 */
     void adjustStock(Long productId, Long batchId, int newQuantity, String reason, Long adminUserId);
+
+    /** Lotes vigentes del producto (con unidades y sin vencer), para la pantalla de ajuste. */
+    List<Batch> batchesOf(Long productId);
 
     /** Solo en DRAFT. */
     PurchaseOrder updateOrderLines(Long orderId, List<OrderLineEdit> edits);

@@ -1,18 +1,23 @@
 package com.inventiq.application.purchasing;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.inventiq.domain.model.AuditAction;
+import com.inventiq.domain.model.Batch;
 import com.inventiq.domain.model.PurchaseOrder;
 import com.inventiq.domain.model.Settings;
 import com.inventiq.domain.port.AuditRecorder;
 import com.inventiq.domain.port.BatchRepository;
 import com.inventiq.domain.port.SettingsRepository;
+
 
 /**
  * Compras y administración (parte D). Lee y guarda por los puertos, deja las reglas al dominio
@@ -86,13 +91,58 @@ public class PurchasingServiceImpl implements PurchasingService {
         return field + ": " + before + " -> " + after;
     }
 
-    // ---------- Pendientes: se implementan en los siguientes commits y en D6 y D7 ----------
+        // ---------- FR-08: ajuste manual de stock ----------
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Batch> batchesOf(Long productId) {
+        return batches.findAvailableByProduct(productId, LocalDate.now(clock));
+    }
+
+    @Override
+    @Transactional
     public void adjustStock(Long productId, Long batchId, int newQuantity, String reason,
                             Long adminUserId) {
-        throw new UnsupportedOperationException("Pendiente: D5, commit 2");
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("El motivo del ajuste es obligatorio");
+        }
+        if (newQuantity < 0) {
+            throw new IllegalArgumentException("La cantidad no puede ser negativa");
+        }
+        Batch batch = batches.findById(batchId)
+                .orElseThrow(() -> new IllegalArgumentException("El lote " + batchId + " no existe"));
+        if (!Objects.equals(batch.getProductId(), productId)) {
+            throw new IllegalArgumentException("El lote " + batchId + " no es del producto " + productId);
+        }
+        int before = batch.getQuantityRemaining();
+        if (newQuantity == before) {
+            return;
+        }
+        String details = "Lote " + batchId + ": " + before + " -> " + newQuantity;
+        if (newQuantity < before) {
+            batch.consume(before - newQuantity);
+            batches.save(batch);
+        } else {
+            int room = batch.getQuantityReceived() - before;
+            int restored = Math.min(room, newQuantity - before);
+            if (restored > 0) {
+                batch.restore(restored);
+                batches.save(batch);
+            }
+            int extra = newQuantity - before - restored;
+            if (extra > 0) {
+                batches.save(new Batch(null, productId, extra, extra, batch.getExpirationDate(),
+                        Instant.now(clock), batch.getUnitCost(), null, null, null));
+                details += " (" + extra + " en un lote nuevo de ajuste)";
+            }
+        }
+        audit.record(AuditAction.STOCK_ADJUSTED, "Batch", batchId,
+                details + ". Motivo: " + reason.trim(), adminUserId);
     }
+
+    // ---------- Pendientes: se implementan en los siguientes commits y en D6 y D7 ----------
+
+
 
     @Override
     public PurchaseOrder updateOrderLines(Long orderId, List<OrderLineEdit> edits) {

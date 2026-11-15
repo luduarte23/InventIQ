@@ -1,11 +1,12 @@
 package com.inventiq.fakes;
 
-import com.inventiq.domain.model.Batch;
-import com.inventiq.domain.port.BatchRepository;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import com.inventiq.domain.model.Batch;
+import com.inventiq.domain.port.BatchRepository;
 
 /** Repositorio falso de lotes: guarda todo en una lista. Solo para pruebas. */
 public class InMemoryBatchRepository implements BatchRepository {
@@ -35,12 +36,21 @@ public class InMemoryBatchRepository implements BatchRepository {
         return Optional.empty();
     }
 
+    
     @Override
     public Batch save(Batch batch) {
-        if (!batches.contains(batch)) {
-            batches.add(batch);
+        Batch saved = batch;
+        if (batch.getId() == null) {
+            long nextId = batches.stream().mapToLong(Batch::getId).max().orElse(0) + 1;
+            saved = new Batch(nextId, batch.getProductId(), batch.getQuantityReceived(),
+                    batch.getQuantityRemaining(), batch.getExpirationDate(), batch.getReceivedAt(),
+                    batch.getUnitCost(), batch.getDiscountPercent(), batch.getPurchaseOrderId(),
+                    batch.getVersion());
         }
-        return batch;
+        if (!batches.contains(saved)) {
+            batches.add(saved);
+        }
+        return saved;
     }
 
     /** Suma de unidades de los lotes con unidades y no vencidos, como el repositorio real. */
