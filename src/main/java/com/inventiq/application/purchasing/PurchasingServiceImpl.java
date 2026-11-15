@@ -24,6 +24,7 @@ import com.inventiq.domain.port.PurchaseOrderRepository;
 import com.inventiq.domain.port.SettingsRepository;
 
 
+
 /**
  * Compras y administración (parte D). Lee y guarda por los puertos, deja las reglas al dominio
  * (Settings, Batch, PurchaseOrder) y audita cada cambio administrativo. Solo orquesta.
@@ -250,13 +251,29 @@ public class PurchasingServiceImpl implements PurchasingService {
         return order.getLines().stream().mapToInt(PurchaseOrderLine::pendingQuantity).sum();
     }
 
-    // ---------- Pendientes: se implementan D7 ----------
-
-
+    // ---------- D7 pedidos ----------
 
     @Override
+    @Transactional
     public PurchaseOrder updateOrderLines(Long orderId, List<OrderLineEdit> edits) {
-        throw new UnsupportedOperationException("Pendiente: D7");
+        PurchaseOrder order = getOrder(orderId);
+        for (OrderLineEdit edit : edits) {
+            boolean inOrder = order.getLines().stream()
+                    .anyMatch(l -> l.getProductId().equals(edit.productId()));
+            if (edit.quantityOrdered() == 0) {
+                if (inOrder) {
+                    order.removeLine(edit.productId());
+                }
+            } else if (inOrder) {
+                order.updateLine(edit.productId(), edit.quantityOrdered(), edit.addedByMoq());
+            } else {
+                Product product = products.findById(edit.productId())
+                        .orElseThrow(() -> new IllegalArgumentException("El producto " + edit.productId() + " no existe"));
+                order.addLine(new PurchaseOrderLine(null, orderId, edit.productId(),
+                        edit.quantityOrdered(), 0, product.getUnitCost(), edit.addedByMoq()));
+            }
+        }
+        return orders.save(order);
     }
 
     @Override

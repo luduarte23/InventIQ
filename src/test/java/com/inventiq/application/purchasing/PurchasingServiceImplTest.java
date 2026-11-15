@@ -3,28 +3,30 @@ package com.inventiq.application.purchasing;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
-import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import com.inventiq.domain.model.AuditAction;
 import com.inventiq.domain.model.AuditLog;
-import com.inventiq.domain.model.Settings;
-import com.inventiq.fakes.InMemoryAuditLogRepository;
-import com.inventiq.fakes.InMemoryBatchRepository;
-import com.inventiq.fakes.InMemorySettingsRepository;
 import com.inventiq.domain.model.Batch;
 import com.inventiq.domain.model.OrderStatus;
 import com.inventiq.domain.model.Product;
 import com.inventiq.domain.model.PurchaseOrder;
 import com.inventiq.domain.model.PurchaseOrderLine;
+import com.inventiq.domain.model.Settings;
+import com.inventiq.domain.model.Supplier;
+import com.inventiq.fakes.InMemoryAuditLogRepository;
+import com.inventiq.fakes.InMemoryBatchRepository;
 import com.inventiq.fakes.InMemoryProductRepository;
 import com.inventiq.fakes.InMemoryPurchaseOrderRepository;
+import com.inventiq.fakes.InMemorySettingsRepository;
+import com.inventiq.fakes.InMemorySupplierRepository;
 
 /** Pruebas de PurchasingServiceImpl con repositorios falsos: sin Spring ni base de datos. */
 class PurchasingServiceImplTest {
@@ -39,6 +41,7 @@ class PurchasingServiceImplTest {
     private final InMemoryAuditLogRepository auditLogs = new InMemoryAuditLogRepository();
     private final InMemoryPurchaseOrderRepository orders = new InMemoryPurchaseOrderRepository();
     private final InMemoryProductRepository products = new InMemoryProductRepository();
+    private final InMemorySupplierRepository suppliers = new InMemorySupplierRepository();
     private final PurchasingServiceImpl service = new PurchasingServiceImpl(settings, batches,
             orders, products, new DatabaseAuditRecorder(auditLogs, CLOCK), CLOCK);
 
@@ -243,6 +246,34 @@ class PurchasingServiceImplTest {
         PurchaseOrder order = sentOrderOf50();
 
         assertThrows(IllegalStateException.class, () -> service.closeOrder(order.getId(), ADMIN));
+    }
+
+    // ---------- Pedidos (D7) ----------
+
+    /** Borrador del proveedor 1 (Alpina) con 10 unidades del producto 7 a $2100. */
+    private PurchaseOrder draftOf10() {
+        suppliers.add(new Supplier(1L, "Alpina", "+573005550001", 3, null, null, true));
+        products.save(new Product(7L, "7702001000012", "Yogur de fresa", new BigDecimal("3200"),
+                new BigDecimal("2100"), true, 1L, 0, 0, true, null));
+        products.save(new Product(8L, "7702001000029", "Kumis", new BigDecimal("2800"),
+                new BigDecimal("1800"), true, 1L, 0, 0, true, null));
+        PurchaseOrder order = PurchaseOrder.draft(1L, NOW);
+        order.addLine(new PurchaseOrderLine(null, null, 7L, 10, 0, new BigDecimal("2100"), false));
+        return orders.save(order);
+    }
+
+    @Test
+    void draftLinesCanBeChangedAddedAndRemoved() {
+        PurchaseOrder order = draftOf10();
+
+        service.updateOrderLines(order.getId(), List.of(new OrderLineEdit(7L, 12, false),
+                new OrderLineEdit(8L, 5, true)));
+        PurchaseOrder edited = service.getOrder(order.getId());
+        assertEquals(2, edited.getLines().size());
+        assertEquals(new BigDecimal("34200.00"), edited.getTotalCost());
+
+        service.updateOrderLines(order.getId(), List.of(new OrderLineEdit(8L, 0, false)));
+        assertEquals(1, service.getOrder(order.getId()).getLines().size());
     }
 
     private AuditLog onlyAuditEntry() {
