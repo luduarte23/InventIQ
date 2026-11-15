@@ -366,6 +366,19 @@ class PurchasingServiceImplTest {
         assertTrue(sentMessages.isEmpty());
     }
 
+    @Test
+    void allOrdersListsEveryStatusNewestFirst() {
+        PurchaseOrder order = draftOf10();
+        PurchaseOrder older = PurchaseOrder.draft(1L, NOW.minusSeconds(3600));
+        older.addLine(new PurchaseOrderLine(null, null, 7L, 1, 0, new BigDecimal("2100"), false));
+        Long olderId = orders.save(older).getId();
+        service.approveOrder(order.getId(), ADMIN);
+
+        List<PurchaseOrder> all = service.allOrders();
+
+        assertEquals(List.of(order.getId(), olderId), all.stream().map(PurchaseOrder::getId).toList());
+    }
+
     private AuditLog onlyAuditEntry() {
         List<AuditLog> entries = auditLogs.findRecent(10);
         assertEquals(1, entries.size());

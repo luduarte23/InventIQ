@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -265,6 +266,17 @@ public class PurchasingServiceImpl implements PurchasingService {
     }
 
     // ---------- D7 pedidos ----------
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PurchaseOrder> allOrders() {
+        List<PurchaseOrder> all = new ArrayList<>();
+        for (OrderStatus status : OrderStatus.values()) {
+            all.addAll(orders.findByStatus(status));
+        }
+        all.sort(Comparator.comparing(PurchaseOrder::getCreatedAt).reversed());
+        return all;
+    }
 
     @Override
     @Transactional

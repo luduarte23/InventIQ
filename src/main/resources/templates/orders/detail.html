@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Pedido')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: barra}"></header>
+
+<main class="contenido">
+    <h1 th:text="${'Pedido #' + order.id}">Pedido #4</h1>
+    <p th:text="${(order.supplierId == null ? 'Sin proveedor' : supplierNames[order.supplierId])
+                 + ' · ' + order.status + ' · total $ ' + order.totalCost}">Alpina · DRAFT · total $ 21000.00</p>
+    <p class="mensaje aviso" th:if="${notice}" th:text="${notice}">Mensaje</p>
+    <p class="mensaje error" th:if="${error}" th:text="${error}">Error</p>
+
+    <!-- En borrador las cantidades se editan (0 quita la línea). En los demás estados solo se ven. -->
+    <form method="post" th:action="@{/orders/{id}/lines(id=${order.id})}">
+        <div class="tabla-scroll">
+            <table>
+                <thead>
+                <tr><th>Producto</th><th>Cantidad</th><th>Costo unitario</th><th>Recibidas</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="line : ${order.lines}">
+                    <td>
+                        <span th:text="${productNames[line.productId]}">Yogur de fresa</span>
+                        <span th:if="${line.addedByMoq}"> (sugerido para el mínimo)</span>
+                    </td>
+                    <td>
+                        <th:block th:if="${order.status.name() == 'DRAFT'}">
+                            <input type="hidden" name="productId" th:value="${line.productId}">
+                            <input type="hidden" name="addedByMoq" th:value="${line.addedByMoq}">
+                            <input type="number" name="quantity" min="0" th:value="${line.quantityOrdered}" required>
+                        </th:block>
+                        <span th:unless="${order.status.name() == 'DRAFT'}" th:text="${line.quantityOrdered}">10</span>
+                    </td>
+                    <td th:text="${'$ ' + line.unitCost}">$ 2100</td>
+                    <td th:text="${line.quantityReceived}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="acciones" th:if="${order.status.name() == 'DRAFT'}">
+            <button type="submit" class="secundario">Guardar cantidades</button>
+        </div>
+    </form>
+
+    <form method="post" th:action="@{/orders/{id}/approve(id=${order.id})}" th:if="${order.status.name() == 'DRAFT'}">
+        <input type="hidden" name="back" th:value="${'/orders/' + order.id}">
+        <div class="acciones"><button type="submit">Aprobar</button></div>
+    </form>
+
+    <!-- FR-09: el mensaje para el proveedor. Si el envío automático falla, se copia y se manda a mano. -->
+    <div th:if="${message != null}">
+        <h2>Mensaje para el proveedor</h2>
+        <pre style="white-space: pre-wrap; background: #ffffff; padding: 12px; border: 1px solid #d5d9e0;"
+             th:text="${message.body()}">Hola Alpina...</pre>
+        <form method="post" th:action="@{/orders/{id}/send(id=${order.id})}" th:if="${order.status.name() == 'APPROVED'}">
+            <div class="acciones"><button type="submit">Enviar al proveedor</button></div>
+        </form>
+    </div>
+
+    <p th:if="${order.status.name() == 'SENT' or order.status.name() == 'PARTIALLY_RECEIVED'}">
+        <a th:href="@{/receiving/{id}(id=${order.id})}">Registrar la llegada de este pedido</a>
+    </p>
+    <p><a th:href="@{/orders}">Volver a la lista</a></p>
+</main>
+</body>
+</html>
