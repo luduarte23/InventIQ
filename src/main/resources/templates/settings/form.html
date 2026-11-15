@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Parámetros')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: barra}"></header>
+
+<main class="contenido">
+    <h1>Parámetros</h1>
+    <p class="mensaje aviso" th:if="${message}" th:text="${message}">Mensaje</p>
+    <p class="mensaje error" th:if="${error}" th:text="${error}">Error</p>
+
+    <form method="post" th:action="@{/settings}" th:object="${form}">
+        <label>Presupuesto semanal de compras
+            <input type="number" th:field="*{weeklyBudget}" min="0" step="0.01" required></label>
+        <label>Ventana de ventas para calcular la velocidad (días)
+            <input type="number" th:field="*{salesWindowDays}" min="1" required></label>
+        <label>Periodo de revisión de pedidos (días)
+            <input type="number" th:field="*{reviewPeriodDays}" min="1" required></label>
+        <label>Horizonte para revisar vencimientos (días)
+            <input type="number" th:field="*{expiryReviewHorizonDays}" min="1" required></label>
+        <label>WhatsApp del administrador
+            <input type="text" th:field="*{adminWhatsappNumber}" placeholder="+573001234567" required></label>
+
+        <div class="acciones">
+            <button type="submit">Guardar</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

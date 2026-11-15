@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Stock')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: barra}"></header>
+
+<main class="contenido">
+    <h1>Ajuste de stock</h1>
+    <p>Elige un producto para ver sus lotes y corregir las cantidades.</p>
+
+    <div class="tabla-scroll">
+        <table>
+            <thead>
+            <tr><th>Código</th><th>Producto</th><th>Stock vendible</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="row : ${rows}">
+                <td th:text="${row.barcode()}">7702001000012</td>
+                <td th:text="${row.name()}">Yogur de fresa</td>
+                <td th:text="${row.availableStock()}">12</td>
+                <td><a th:href="@{/stock/{id}(id=${row.productId()})}">Ver lotes</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>
