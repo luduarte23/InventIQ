@@ -10,6 +10,7 @@ import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.inventiq.domain.model.AlertType;
 import com.inventiq.domain.model.AuditAction;
 import com.inventiq.domain.model.Batch;
 import com.inventiq.domain.model.OrderStatus;
@@ -17,11 +18,16 @@ import com.inventiq.domain.model.Product;
 import com.inventiq.domain.model.PurchaseOrder;
 import com.inventiq.domain.model.PurchaseOrderLine;
 import com.inventiq.domain.model.Settings;
+import com.inventiq.domain.model.Supplier;
+import com.inventiq.domain.port.AlertService;
 import com.inventiq.domain.port.AuditRecorder;
 import com.inventiq.domain.port.BatchRepository;
+import com.inventiq.domain.port.MessageNotifier;
+import com.inventiq.domain.port.NotificationResult;
 import com.inventiq.domain.port.ProductRepository;
 import com.inventiq.domain.port.PurchaseOrderRepository;
 import com.inventiq.domain.port.SettingsRepository;
+import com.inventiq.domain.port.SupplierRepository;
 
 
 
@@ -36,16 +42,23 @@ public class PurchasingServiceImpl implements PurchasingService {
     private final BatchRepository batches;
     private final PurchaseOrderRepository orders;
     private final ProductRepository products;
+    private final SupplierRepository suppliers;
+    private final MessageNotifier notifier;
+    private final AlertService alerts;
     private final AuditRecorder audit;
     private final Clock clock;
 
     public PurchasingServiceImpl(SettingsRepository settings, BatchRepository batches,
                                  PurchaseOrderRepository orders, ProductRepository products,
-                                 AuditRecorder audit, Clock clock) {
+                                 SupplierRepository suppliers, MessageNotifier notifier,
+                                 AlertService alerts, AuditRecorder audit, Clock clock) {
         this.settings = settings;
         this.batches = batches;
         this.orders = orders;
         this.products = products;
+        this.suppliers = suppliers;
+        this.notifier = notifier;
+        this.alerts = alerts;
         this.audit = audit;
         this.clock = clock;
     }
@@ -291,14 +304,46 @@ public class PurchasingServiceImpl implements PurchasingService {
         return saved;
     }
 
+    /** FR-09: el texto que se le manda al proveedor, con una línea por producto. */
     @Override
+    @Transactional(readOnly = true)
     public SupplierMessage buildSupplierMessage(Long orderId) {
-        throw new UnsupportedOperationException("Pendiente: D7");
+        PurchaseOrder order = getOrder(orderId);
+        Supplier supplier = supplierOf(order);
+        StringBuilder body = new StringBuilder("Hola " + supplier.getName() + ", este es el pedido #"
+                + orderId + ":\n");
+        for (PurchaseOrderLine line : order.getLines()) {
+            String name = products.findById(line.getProductId()).map(Product::getName)
+                    .orElse("Producto " + line.getProductId());
+            body.append("- ").append(line.getQuantityOrdered()).append(" x ").append(name).append("\n");
+        }
+        body.append("Total: $ ").append(order.getTotalCost()).append("\nGracias.");
+        return new SupplierMessage(orderId, supplier.getName(), body.toString());
     }
 
+  
     @Override
+    @Transactional
     public PurchaseOrder sendOrder(Long orderId, Long adminUserId) {
-        throw new UnsupportedOperationException("Pendiente: D7");
+        PurchaseOrder order = getOrder(orderId);
+        Supplier supplier = supplierOf(order);
+        SupplierMessage message = buildSupplierMessage(orderId);
+        order.markSent(Instant.now(clock));
+        PurchaseOrder saved = orders.save(order);
+        NotificationResult result = notifier.send(supplier.getWhatsappNumber(), message.body());
+        if (!result.success()) {
+            alerts.raise(AlertType.NOTIFICATION_FAILED, "No se pudo enviar el pedido #" + orderId
+                    + " a " + supplier.getName() + ": " + result.errorMessage(), "PurchaseOrder", orderId);
+        }
+        return saved;
+    }
+
+    private Supplier supplierOf(PurchaseOrder order) {
+        if (order.getSupplierId() == null) {
+            throw new IllegalArgumentException("El pedido " + order.getId() + " no tiene proveedor");
+        }
+        return suppliers.findById(order.getSupplierId())
+                .orElseThrow(() -> new IllegalArgumentException("El proveedor " + order.getSupplierId() + " no existe"));
     }
 
     

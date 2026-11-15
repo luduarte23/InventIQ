@@ -27,6 +27,11 @@ import com.inventiq.fakes.InMemoryProductRepository;
 import com.inventiq.fakes.InMemoryPurchaseOrderRepository;
 import com.inventiq.fakes.InMemorySettingsRepository;
 import com.inventiq.fakes.InMemorySupplierRepository;
+import com.inventiq.domain.model.AlertType;
+import com.inventiq.domain.port.MessageNotifier;
+import com.inventiq.domain.port.NotificationResult;
+import com.inventiq.fakes.InMemoryAlertRepository;
+import java.util.ArrayList;
 
 /** Pruebas de PurchasingServiceImpl con repositorios falsos: sin Spring ni base de datos. */
 class PurchasingServiceImplTest {
@@ -42,8 +47,17 @@ class PurchasingServiceImplTest {
     private final InMemoryPurchaseOrderRepository orders = new InMemoryPurchaseOrderRepository();
     private final InMemoryProductRepository products = new InMemoryProductRepository();
     private final InMemorySupplierRepository suppliers = new InMemorySupplierRepository();
+    private final InMemoryAlertRepository alertRepository = new InMemoryAlertRepository();
+    /** Notificador falso: guarda lo que "envía" y responde lo que diga notifierWorks. */
+    private final List<String> sentMessages = new ArrayList<>();
+    private boolean notifierWorks = true;
+    private final MessageNotifier notifier = (number, body) -> {
+        sentMessages.add(number + " | " + body);
+        return notifierWorks ? NotificationResult.ok("SM1") : NotificationResult.failed("Sin señal");
+    };
     private final PurchasingServiceImpl service = new PurchasingServiceImpl(settings, batches,
-            orders, products, new DatabaseAuditRecorder(auditLogs, CLOCK), CLOCK);
+            orders, products, suppliers, notifier, new DatabaseAlertService(alertRepository, CLOCK),
+            new DatabaseAuditRecorder(auditLogs, CLOCK), CLOCK);
 
     // ---------- Parámetros (FR-08) ----------
 
@@ -306,6 +320,50 @@ class PurchasingServiceImplTest {
 
         assertThrows(IllegalArgumentException.class, () -> service.approveOrder(id, ADMIN));
         assertEquals(OrderStatus.DRAFT, service.getOrder(id).getStatus());
+    }
+
+        @Test
+    void theSupplierMessageListsEveryProductAndTheTotal() {
+        PurchaseOrder order = draftOf10();
+
+        SupplierMessage message = service.buildSupplierMessage(order.getId());
+
+        assertEquals("Alpina", message.supplierName());
+        assertEquals("Hola Alpina, este es el pedido #" + order.getId() + ":\n- 10 x Yogur de fresa\n"
+                + "Total: $ 21000.00\nGracias.", message.body());
+    }
+
+    @Test
+    void sendingMarksTheOrderSentAndMessagesTheSupplier() {
+        PurchaseOrder order = draftOf10();
+        service.approveOrder(order.getId(), ADMIN);
+
+        PurchaseOrder sent = service.sendOrder(order.getId(), ADMIN);
+
+        assertEquals(OrderStatus.SENT, sent.getStatus());
+        assertEquals(1, sentMessages.size());
+        assertTrue(sentMessages.get(0).startsWith("+573005550001 | Hola Alpina"));
+        assertTrue(alertRepository.findUnresolved().isEmpty());
+    }
+
+    @Test
+    void ifTheMessageFailsTheOrderIsStillSentAndAnAlertIsRaised() {
+        PurchaseOrder order = draftOf10();
+        service.approveOrder(order.getId(), ADMIN);
+        notifierWorks = false;
+
+        PurchaseOrder sent = service.sendOrder(order.getId(), ADMIN);
+
+        assertEquals(OrderStatus.SENT, sent.getStatus());
+        assertEquals(AlertType.NOTIFICATION_FAILED, alertRepository.findUnresolved().get(0).getType());
+    }
+
+    @Test
+    void onlyAnApprovedOrderCanBeSent() {
+        PurchaseOrder order = draftOf10();
+
+        assertThrows(IllegalStateException.class, () -> service.sendOrder(order.getId(), ADMIN));
+        assertTrue(sentMessages.isEmpty());
     }
 
     private AuditLog onlyAuditEntry() {
