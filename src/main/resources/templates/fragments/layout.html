@@ -21,6 +21,7 @@
     <span class="marca">InventIQ</span>
 
     <nav>
+        <a th:if="${isAdmin}" th:href="@{/admin}">Inicio</a>
         <a th:href="@{/pos}">Ventas</a>
         <!-- Solo el administrador ve las pantallas de C y D (NFR-03). -->
         <a th:if="${isAdmin}" th:href="@{/replenishment}">Reabastecimiento</a>

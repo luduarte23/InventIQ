@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Inicio')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: barra}"></header>
+
+<main class="contenido">
+    <h1>Inicio</h1>
+
+    <h2>Alertas sin resolver</h2>
+    <p th:if="${alerts.isEmpty()}">No hay alertas pendientes.</p>
+
+    <div class="tabla-scroll" th:unless="${alerts.isEmpty()}">
+        <table>
+            <thead>
+            <tr><th>Tipo</th><th>Detalle</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="alert : ${alerts}">
+                <td th:text="${alert.type}">LOW_STOCK</td>
+                <td th:text="${alert.message}">Quedan 2 yogures</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>
