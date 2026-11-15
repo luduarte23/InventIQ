@@ -221,7 +221,30 @@ class PurchasingServiceImplTest {
                 List.of(new ReceiptLine(8L, 5, EXPIRES)), ADMIN));
         assertThrows(IllegalArgumentException.class, () -> service.getOrder(99L));
     }
-    
+
+    // ---------- Cierre con pendientes (HU-05 esc. 2) ----------
+
+    @Test
+    void aPartiallyReceivedOrderIsClosedKeepingWhatArrived() {
+        PurchaseOrder order = sentOrderOf50();
+        service.confirmReceipt(order.getId(), List.of(new ReceiptLine(7L, 30, EXPIRES)), ADMIN);
+
+        PurchaseOrder closed = service.closeOrder(order.getId(), ADMIN);
+
+        assertEquals(OrderStatus.CLOSED, closed.getStatus());
+        assertEquals(30, service.batchesOf(7L).get(0).getQuantityRemaining());
+        assertTrue(service.ordersAwaitingReception().isEmpty());
+        assertEquals("Pedido cerrado con 20 unidades pendientes que ya no se esperan",
+                auditLogs.findRecent(1).get(0).details());
+    }
+
+    @Test
+    void onlyAPartiallyReceivedOrderCanBeClosed() {
+        PurchaseOrder order = sentOrderOf50();
+
+        assertThrows(IllegalStateException.class, () -> service.closeOrder(order.getId(), ADMIN));
+    }
+
     private AuditLog onlyAuditEntry() {
         List<AuditLog> entries = auditLogs.findRecent(10);
         assertEquals(1, entries.size());

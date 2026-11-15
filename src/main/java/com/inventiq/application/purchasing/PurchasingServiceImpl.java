@@ -204,6 +204,20 @@ public class PurchasingServiceImpl implements PurchasingService {
         return saved;
     }
 
+    /** HU-05 esc. 2. No hay acción ORDER_CLOSED: se audita como ORDER_RECEIVED con el detalle. */
+    @Override
+    @Transactional
+    public PurchaseOrder closeOrder(Long orderId, Long adminUserId) {
+        PurchaseOrder order = getOrder(orderId);
+        int pending = pendingUnits(order);
+        order.closeWithPending(Instant.now(clock));
+        PurchaseOrder saved = orders.save(order);
+        audit.record(AuditAction.ORDER_RECEIVED, "PurchaseOrder", orderId,
+                "Pedido cerrado con " + pending + " unidades pendientes que ya no se esperan",
+                adminUserId);
+        return saved;
+    }
+
     /** Una línea recibida es válida si el producto está en el pedido, la cantidad cabe en lo
      *  pendiente y la fecha de vencimiento existe (si es perecedero) y no ha pasado. */
     private void validate(PurchaseOrder order, ReceiptLine line, LocalDate today) {
