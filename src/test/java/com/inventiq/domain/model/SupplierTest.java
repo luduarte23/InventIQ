@@ -1,13 +1,13 @@
 package com.inventiq.domain.model;
 
+import java.math.BigDecimal;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 
 /** Pruebas de Supplier: validaciones, pedido mínimo (MOQ) y cambios. */
@@ -112,4 +112,38 @@ class SupplierTest {
     private static Supplier supplier() {
         return new Supplier(null, "Lácteos del Valle", WHATSAPP, 3, null, null, true);
     }
+
+        // --- Cambios de D2 (los usa el CRUD de proveedores, D4) ---
+
+    @Test
+    void renameChangesTheNameButRejectsAnEmptyOne() {
+        Supplier supplier = new Supplier(1L, "Lácteos", WHATSAPP, 3, null, null, true);
+
+        supplier.rename("Lácteos del Valle");
+
+        assertEquals("Lácteos del Valle", supplier.getName());
+        assertThrows(IllegalArgumentException.class, () -> supplier.rename(" "));
+    }
+
+    @Test
+    void theMinimumOrderCanBeChangedOrRemoved() {
+        Supplier supplier = new Supplier(1L, "Lácteos", WHATSAPP, 3, null, null, true);
+
+        supplier.changeMinimumOrder(new BigDecimal("200000"), 12);
+        assertEquals(new BigDecimal("200000"), supplier.getMinOrderAmount());
+        assertEquals(12, supplier.getMinOrderUnits());
+
+        supplier.changeMinimumOrder(null, null);
+        assertFalse(supplier.hasMinimumOrder());
+    }
+
+    @Test
+    void aNegativeMinimumOrderIsRejected() {
+        Supplier supplier = new Supplier(1L, "Lácteos", WHATSAPP, 3, null, null, true);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> supplier.changeMinimumOrder(new BigDecimal("-1"), null));
+        assertThrows(IllegalArgumentException.class, () -> supplier.changeMinimumOrder(null, -1));
+    }
+    
 }

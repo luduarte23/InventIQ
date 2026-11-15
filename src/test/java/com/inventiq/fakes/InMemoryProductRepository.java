@@ -1,10 +1,12 @@
 package com.inventiq.fakes;
 
-import com.inventiq.domain.model.Product;
-import com.inventiq.domain.port.ProductRepository;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+
+import com.inventiq.domain.model.Product;
+import com.inventiq.domain.port.ProductRepository;
 
 /** Repositorio falso: guarda los productos en una lista, sin base de datos. Solo para pruebas. */
 public class InMemoryProductRepository implements ProductRepository {
@@ -37,6 +39,11 @@ public class InMemoryProductRepository implements ProductRepository {
             }
         }
         return Optional.empty();
+    }
+
+    @Override
+    public List<Product> findAll() {
+        return products.stream().sorted(Comparator.comparing(Product::getName)).toList();
     }
 
     @Override

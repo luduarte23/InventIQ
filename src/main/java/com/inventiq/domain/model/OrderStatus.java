@@ -14,5 +14,6 @@ public enum OrderStatus {
     SENT,
     PARTIALLY_RECEIVED,
     RECEIVED,
-    CANCELLED
+    CANCELLED,
+    CLOSED
 }

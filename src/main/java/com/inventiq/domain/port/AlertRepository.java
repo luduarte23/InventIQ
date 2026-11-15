@@ -5,10 +5,13 @@
 // AlertRepository.java
 package com.inventiq.domain.port;
 
-import com.inventiq.domain.model.Alert;
 import java.util.List;
+import java.util.Optional;
+
+import com.inventiq.domain.model.Alert;
 
 public interface AlertRepository {
     Alert save(Alert alert);
     List<Alert> findUnresolved();
+    Optional<Alert> findById(Long id);
 }

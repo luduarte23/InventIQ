@@ -1,13 +1,15 @@
 package com.inventiq.infrastructure.persistence.adapter;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.stereotype.Repository;
+
 import com.inventiq.domain.model.Supplier;
 import com.inventiq.domain.port.SupplierRepository;
 import com.inventiq.infrastructure.persistence.entity.SupplierEntity;
 import com.inventiq.infrastructure.persistence.jpa.SupplierJpaRepository;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 /** Implementa el puerto SupplierRepository del dominio usando JPA (A5). */
 @Repository
@@ -31,5 +33,19 @@ public class SupplierRepositoryAdapter implements SupplierRepository {
             suppliers.add(entity.toDomain());
         }
         return suppliers;
+    }
+    
+    @Override
+    public List<Supplier> findAll() {
+        List<Supplier> suppliers = new ArrayList<>();
+        for (SupplierEntity entity : jpa.findAllByOrderByNameAsc()) {
+            suppliers.add(entity.toDomain());
+        }
+        return suppliers;
+    }
+
+    @Override
+    public Supplier save(Supplier supplier) {
+        return jpa.save(SupplierEntity.fromDomain(supplier)).toDomain();
     }
 }

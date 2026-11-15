@@ -1,9 +1,12 @@
 package com.inventiq.fakes;
 
-import com.inventiq.domain.model.Alert;
-import com.inventiq.domain.port.AlertRepository;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
+import com.inventiq.domain.model.Alert;
+import com.inventiq.domain.port.AlertRepository;
+
 
 /** Repositorio falso de alertas: guarda las alertas en una lista. Solo para pruebas. */
 public class InMemoryAlertRepository implements AlertRepository {
@@ -25,6 +28,12 @@ public class InMemoryAlertRepository implements AlertRepository {
     public List<Alert> findUnresolved() {
         return alerts.stream().filter(a -> !a.isResolved()).toList();
     }
+
+    @Override
+    public Optional<Alert> findById(Long id) {
+        return alerts.stream().filter(a -> a.getId().equals(id)).findFirst();
+    }
+
 
     public List<Alert> all() {
         return List.copyOf(alerts);

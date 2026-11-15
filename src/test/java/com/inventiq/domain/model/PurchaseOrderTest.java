@@ -1,15 +1,15 @@
 package com.inventiq.domain.model;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -289,6 +289,44 @@ class PurchaseOrderTest {
         assertThrows(IllegalStateException.class, partial::cancel);
         assertThrows(IllegalStateException.class, received::cancel);
         assertThrows(IllegalStateException.class, cancelled::cancel);
+    }
+
+
+    // --- Cierre con pendientes: PARTIALLY_RECEIVED -> CLOSED (HU-05 esc. 2) ---
+
+    @Test
+    void aPartiallyReceivedOrderCanBeClosedKeepingWhatArrived() {
+        PurchaseOrder order = sentOrder();
+        order.registerReception(1L, 4, RECEIVED);
+
+        order.closeWithPending(RECEIVED);
+
+        assertEquals(OrderStatus.CLOSED, order.getStatus());
+        assertEquals(RECEIVED, order.getReceivedAt());
+        assertEquals(4, order.getLines().get(0).getQuantityReceived());
+        assertEquals(6, order.getLines().get(0).pendingQuantity());
+    }
+
+    @Test
+    void onlyAPartiallyReceivedOrderCanBeClosed() {
+        PurchaseOrder draft = draftWithOneLine();
+        PurchaseOrder sent = sentOrder();
+        PurchaseOrder received = sentOrder();
+        received.registerReception(1L, 10, RECEIVED);
+
+        assertThrows(IllegalStateException.class, () -> draft.closeWithPending(RECEIVED));
+        assertThrows(IllegalStateException.class, () -> sent.closeWithPending(RECEIVED));
+        assertThrows(IllegalStateException.class, () -> received.closeWithPending(RECEIVED));
+    }
+
+    @Test
+    void aClosedOrderCannotReceiveMoreNorBeCancelled() {
+        PurchaseOrder order = sentOrder();
+        order.registerReception(1L, 4, RECEIVED);
+        order.closeWithPending(RECEIVED);
+
+        assertThrows(IllegalStateException.class, () -> order.registerReception(1L, 6, RECEIVED));
+        assertThrows(IllegalStateException.class, order::cancel);
     }
 
     // --- Igualdad por id ---

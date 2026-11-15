@@ -1,24 +1,26 @@
 package com.inventiq.infrastructure.persistence;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.inventiq.domain.model.Role;
 import com.inventiq.domain.model.Supplier;
 import com.inventiq.domain.model.User;
 import com.inventiq.infrastructure.persistence.adapter.SupplierRepositoryAdapter;
 import com.inventiq.infrastructure.persistence.adapter.UserRepositoryAdapter;
+
 import jakarta.persistence.EntityManager;
-import java.math.BigDecimal;
-import java.util.List;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Prueba los adaptadores de User y Supplier (A5) contra H2 con las tablas reales de Flyway.
@@ -101,6 +103,36 @@ class UserSupplierPersistenceTest {
         assertEquals(new BigDecimal("150000.00"), supplier.getMinOrderAmount());
         assertNull(supplier.getMinOrderUnits());
         assertTrue(supplier.hasMinimumOrder());
+    }
+
+    @Test
+    void savesANewSupplierAndThenUpdatesTheSameRow() {
+        Supplier saved = suppliers.save(new Supplier(null, "Lácteos", "+573001234567", 3,
+                null, null, true));
+        assertNotNull(saved.getId());
+
+        saved.rename("Lácteos del Valle");
+        saved.changeMinimumOrder(new BigDecimal("150000"), 24);
+        saved.deactivate();
+        suppliers.save(saved);
+        reloadFromDatabase();
+
+        Supplier reloaded = suppliers.findById(saved.getId()).get();
+        assertEquals("Lácteos del Valle", reloaded.getName());
+        assertEquals(0, new BigDecimal("150000").compareTo(reloaded.getMinOrderAmount()));
+        assertEquals(24, reloaded.getMinOrderUnits());
+        assertFalse(reloaded.isActive());
+    }
+
+    @Test
+    void findAllIncludesInactiveSuppliersSortedByName() {
+        insertSupplier("Zeta Distribuciones", true);
+        insertSupplier("Alfa Retirado", false);
+
+        List<String> names = suppliers.findAll().stream().map(Supplier::getName).toList();
+
+        assertTrue(names.contains("Alfa Retirado"));
+        assertTrue(names.indexOf("Alfa Retirado") < names.indexOf("Zeta Distribuciones"));
     }
 
     @Test
