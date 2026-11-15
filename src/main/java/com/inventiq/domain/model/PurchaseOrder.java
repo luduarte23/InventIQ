@@ -111,6 +111,16 @@ public class PurchaseOrder {
         }
     }
 
+     /**
+     * PARTIALLY_RECEIVED -> CLOSED: el administrador da por terminado un pedido
+     * que llegó incompleto. Lo recibido sigue en el inventario; lo pendiente ya no se espera.
+     */    
+    public void closeWithPending(Instant now) {
+        requireStatus(OrderStatus.PARTIALLY_RECEIVED);
+        this.status = OrderStatus.CLOSED;
+        this.receivedAt = Objects.requireNonNull(now);
+    }
+
     /** DRAFT | APPROVED | SENT -> CANCELLED. */
     public void cancel() {
         if (status != OrderStatus.DRAFT && status != OrderStatus.APPROVED
