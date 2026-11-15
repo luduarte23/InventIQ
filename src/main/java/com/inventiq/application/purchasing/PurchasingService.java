@@ -15,27 +15,25 @@ public interface PurchasingService {
 
     Settings getSettings();
 
-    /** FR-08 */
     Settings updateSettings(Settings newSettings, Long adminUserId);
 
-    /** FR-08 */
     void adjustStock(Long productId, Long batchId, int newQuantity, String reason, Long adminUserId);
 
-    /** Lotes vigentes del producto (con unidades y sin vencer), para la pantalla de ajuste. */
     List<Batch> batchesOf(Long productId);
 
-    /** Solo en DRAFT. */
     PurchaseOrder updateOrderLines(Long orderId, List<OrderLineEdit> edits);
 
-    /** DRAFT -> APPROVED (NFR-02: máximo 3 clics). */
     PurchaseOrder approveOrder(Long orderId, Long adminUserId);
 
-    /** FR-09 */
     SupplierMessage buildSupplierMessage(Long orderId);
 
-    /** APPROVED -> SENT. Usa MessageNotifier. */
     PurchaseOrder sendOrder(Long orderId, Long adminUserId);
 
-    /** FR-10 */
     PurchaseOrder confirmReceipt(Long orderId, List<ReceiptLine> lines, Long adminUserId);
+
+    List<PurchaseOrder> ordersAwaitingReception();
+
+    PurchaseOrder getOrder(Long orderId);
+
+    PurchaseOrder closeOrder(Long orderId, Long adminUserId);
 }

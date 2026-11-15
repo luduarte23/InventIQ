@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Recepción')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: barra}"></header>
+
+<main class="contenido">
+    <h1>Recepción de pedidos</h1>
+    <p class="mensaje aviso" th:if="${message}" th:text="${message}">Mensaje</p>
+
+    <p th:if="${orders.isEmpty()}">No hay pedidos enviados esperando llegada.</p>
+
+    <div class="tabla-scroll" th:unless="${orders.isEmpty()}">
+        <table>
+            <thead>
+            <tr><th>Pedido</th><th>Proveedor</th><th>Estado</th><th>Unidades pendientes</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="o : ${orders}">
+                <td th:text="${'#' + o.id}">#4</td>
+                <td th:text="${o.supplierId == null} ? 'Sin proveedor' : ${supplierNames[o.supplierId]}">Alpina</td>
+                <td th:text="${o.status.name() == 'SENT'} ? 'Enviado' : 'Recibido a medias'">Enviado</td>
+                <td th:text="${#aggregates.sum(o.lines.![pendingQuantity()])}">20</td>
+                <td><a th:href="@{/receiving/{id}(id=${o.id})}">Recibir</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

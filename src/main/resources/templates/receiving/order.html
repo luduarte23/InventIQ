@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Recepción')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: barra}"></header>
+
+<main class="contenido">
+    <h1 th:text="${'Recibir pedido #' + order.id}">Recibir pedido #4</h1>
+    <p class="mensaje aviso" th:if="${message}" th:text="${message}">Mensaje</p>
+    <p class="mensaje error" th:if="${error}" th:text="${error}">Error</p>
+
+    <!-- Una fila por producto. Las tres listas (productId, quantity, expirationDate) van en el
+         mismo orden. Cantidad 0 = no llegó. La fecha es obligatoria si el producto es perecedero. -->
+    <form method="post" th:action="@{/receiving/{id}(id=${order.id})}">
+        <div class="tabla-scroll">
+            <table>
+                <thead>
+                <tr><th>Producto</th><th>Pedidas</th><th>Recibidas</th><th>Pendientes</th>
+                    <th>Llegaron ahora</th><th>Vence</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="line : ${order.lines}" th:if="${line.pendingQuantity() > 0}">
+                    <td th:text="${products[line.productId].name}">Yogur de fresa</td>
+                    <td th:text="${line.quantityOrdered}">50</td>
+                    <td th:text="${line.quantityReceived}">0</td>
+                    <td th:text="${line.pendingQuantity()}">50</td>
+                    <td>
+                        <input type="hidden" name="productId" th:value="${line.productId}">
+                        <input type="number" name="quantity" min="0" th:max="${line.pendingQuantity()}"
+                               th:value="${line.pendingQuantity()}" required>
+                    </td>
+                    <td>
+                        <input type="date" name="expirationDate"
+                               th:required="${products[line.productId].perishable}">
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="acciones">
+            <button type="submit">Confirmar recepción</button>
+        </div>
+    </form>
+
+    <!-- HU-05 esc. 2: si ya llegó una parte, se puede dar por terminado el pedido. -->
+    <form method="post" th:action="@{/receiving/{id}/close(id=${order.id})}"
+          th:if="${order.status.name() == 'PARTIALLY_RECEIVED'}">
+        <div class="acciones">
+            <button type="submit" class="secundario">Cerrar con pendientes</button>
+        </div>
+    </form>
+
+    <p><a th:href="@{/receiving}">Volver a la lista</a></p>
+</main>
+</body>
+</html>
