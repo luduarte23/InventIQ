@@ -80,6 +80,12 @@ class AccessRulesTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void cashierCannotResolveAlerts() throws Exception {
+        mockMvc.perform(post("/admin/alerts/1/resolve").with(TestUsers.cashier()).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
     // ---------- Administrador ----------
 
     
@@ -95,6 +101,14 @@ class AccessRulesTest {
         mockMvc.perform(get("/admin").with(TestUsers.admin()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/home"));
+    }
+
+    @Test
+    void adminCanResolveAnAlert() throws Exception {
+        // La alerta 999 no existe: el controlador muestra el error y vuelve al inicio.
+        mockMvc.perform(post("/admin/alerts/999/resolve").with(TestUsers.admin()).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin"));
     }
     
     @Test

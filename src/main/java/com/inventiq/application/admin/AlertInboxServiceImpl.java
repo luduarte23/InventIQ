@@ -23,4 +23,13 @@ public class AlertInboxServiceImpl implements AlertInboxService {
     public List<Alert> unresolvedAlerts() {
         return alerts.findUnresolved();
     }
+    
+    @Override
+    @Transactional
+    public void resolve(Long alertId) {
+        Alert alert = alerts.findById(alertId)
+                .orElseThrow(() -> new IllegalArgumentException("La alerta " + alertId + " no existe"));
+        alert.resolve();
+        alerts.save(alert);
+    }
 }

@@ -9,4 +9,5 @@ public interface AlertInboxService {
 
     /** Alertas sin resolver, de la más reciente a la más antigua. */
     List<Alert> unresolvedAlerts();
+    void resolve(Long alertId);
 }
