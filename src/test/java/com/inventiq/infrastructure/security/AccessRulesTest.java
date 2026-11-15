@@ -2,23 +2,23 @@ package com.inventiq.infrastructure.security;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
-
-import com.inventiq.support.TestUsers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.inventiq.support.TestUsers;
 
 /**
  * Reglas de acceso de SecurityConfig (NFR-03), probadas con peticiones simuladas:
@@ -37,7 +37,7 @@ class AccessRulesTest {
     // ---------- Sin sesión ----------
 
     @ParameterizedTest
-    @ValueSource(strings = {"/", "/pos", "/replenishment", "/h2-console", "/ruta-que-no-existe"})
+    @ValueSource(strings = {"/", "/admin", "/pos", "/replenishment", "/h2-console", "/ruta-que-no-existe"})
     void withoutSessionEveryPageRedirectsToLogin(String url) throws Exception {
         mockMvc.perform(get(url))
                 .andExpect(status().is3xxRedirection())
@@ -68,7 +68,7 @@ class AccessRulesTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/replenishment", "/h2-console", "/ruta-que-no-existe"})
+    @ValueSource(strings = {"/replenishment", "/admin", "/h2-console", "/ruta-que-no-existe"})
     void cashierIsForbiddenEverywhereElse(String url) throws Exception {
         mockMvc.perform(get(url).with(TestUsers.cashier()))
                 .andExpect(status().isForbidden());
@@ -80,8 +80,37 @@ class AccessRulesTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void cashierCannotResolveAlerts() throws Exception {
+        mockMvc.perform(post("/admin/alerts/1/resolve").with(TestUsers.cashier()).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
     // ---------- Administrador ----------
 
+    
+    @Test
+    void homeSendsTheAdminToTheAdminHome() throws Exception {
+        mockMvc.perform(get("/").with(TestUsers.admin()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin"));
+    }
+
+    @Test
+    void adminCanOpenTheAdminHome() throws Exception {
+        mockMvc.perform(get("/admin").with(TestUsers.admin()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/home"));
+    }
+
+    @Test
+    void adminCanResolveAnAlert() throws Exception {
+        // La alerta 999 no existe: el controlador muestra el error y vuelve al inicio.
+        mockMvc.perform(post("/admin/alerts/999/resolve").with(TestUsers.admin()).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin"));
+    }
+    
     @Test
     void adminCanOpenTheSalesScreen() throws Exception {
         mockMvc.perform(get("/pos").with(TestUsers.admin()))

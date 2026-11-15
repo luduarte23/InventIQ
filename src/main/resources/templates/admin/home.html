@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Inicio')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: barra}"></header>
+
+<main class="contenido">
+    <h1>Inicio</h1>
+
+    <p class="mensaje aviso" th:if="${message}" th:text="${message}">Mensaje</p>
+    <p class="mensaje error" th:if="${error}" th:text="${error}">Error</p>
+
+    <h2>Alertas sin resolver</h2>
+    <p th:if="${alerts.isEmpty()}">No hay alertas pendientes.</p>
+
+    <div class="tabla-scroll" th:unless="${alerts.isEmpty()}">
+        <table>
+            <thead>
+            <tr><th>Tipo</th><th>Detalle</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="alert : ${alerts}">
+                <td th:text="${alert.type}">LOW_STOCK</td>
+                <td th:text="${alert.message}">Quedan 2 yogures</td>
+                <td>
+                    <form method="post" th:action="@{/admin/alerts/{id}/resolve(id=${alert.id})}">
+                        <button type="submit" class="secundario">Resolver</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>
