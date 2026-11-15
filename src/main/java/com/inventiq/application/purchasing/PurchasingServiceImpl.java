@@ -4,12 +4,14 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.inventiq.domain.model.AlertType;
 import com.inventiq.domain.model.AuditAction;
 import com.inventiq.domain.model.Batch;
 import com.inventiq.domain.model.OrderStatus;
@@ -17,11 +19,17 @@ import com.inventiq.domain.model.Product;
 import com.inventiq.domain.model.PurchaseOrder;
 import com.inventiq.domain.model.PurchaseOrderLine;
 import com.inventiq.domain.model.Settings;
+import com.inventiq.domain.model.Supplier;
+import com.inventiq.domain.port.AlertService;
 import com.inventiq.domain.port.AuditRecorder;
 import com.inventiq.domain.port.BatchRepository;
+import com.inventiq.domain.port.MessageNotifier;
+import com.inventiq.domain.port.NotificationResult;
 import com.inventiq.domain.port.ProductRepository;
 import com.inventiq.domain.port.PurchaseOrderRepository;
 import com.inventiq.domain.port.SettingsRepository;
+import com.inventiq.domain.port.SupplierRepository;
+
 
 
 /**
@@ -35,16 +43,23 @@ public class PurchasingServiceImpl implements PurchasingService {
     private final BatchRepository batches;
     private final PurchaseOrderRepository orders;
     private final ProductRepository products;
+    private final SupplierRepository suppliers;
+    private final MessageNotifier notifier;
+    private final AlertService alerts;
     private final AuditRecorder audit;
     private final Clock clock;
 
     public PurchasingServiceImpl(SettingsRepository settings, BatchRepository batches,
                                  PurchaseOrderRepository orders, ProductRepository products,
-                                 AuditRecorder audit, Clock clock) {
+                                 SupplierRepository suppliers, MessageNotifier notifier,
+                                 AlertService alerts, AuditRecorder audit, Clock clock) {
         this.settings = settings;
         this.batches = batches;
         this.orders = orders;
         this.products = products;
+        this.suppliers = suppliers;
+        this.notifier = notifier;
+        this.alerts = alerts;
         this.audit = audit;
         this.clock = clock;
     }
@@ -250,28 +265,97 @@ public class PurchasingServiceImpl implements PurchasingService {
         return order.getLines().stream().mapToInt(PurchaseOrderLine::pendingQuantity).sum();
     }
 
-    // ---------- Pendientes: se implementan D7 ----------
-
-
+    // ---------- D7 pedidos ----------
 
     @Override
+    @Transactional(readOnly = true)
+    public List<PurchaseOrder> allOrders() {
+        List<PurchaseOrder> all = new ArrayList<>();
+        for (OrderStatus status : OrderStatus.values()) {
+            all.addAll(orders.findByStatus(status));
+        }
+        all.sort(Comparator.comparing(PurchaseOrder::getCreatedAt).reversed());
+        return all;
+    }
+
+    @Override
+    @Transactional
     public PurchaseOrder updateOrderLines(Long orderId, List<OrderLineEdit> edits) {
-        throw new UnsupportedOperationException("Pendiente: D7");
+        PurchaseOrder order = getOrder(orderId);
+        for (OrderLineEdit edit : edits) {
+            boolean inOrder = order.getLines().stream()
+                    .anyMatch(l -> l.getProductId().equals(edit.productId()));
+            if (edit.quantityOrdered() == 0) {
+                if (inOrder) {
+                    order.removeLine(edit.productId());
+                }
+            } else if (inOrder) {
+                order.updateLine(edit.productId(), edit.quantityOrdered(), edit.addedByMoq());
+            } else {
+                Product product = products.findById(edit.productId())
+                        .orElseThrow(() -> new IllegalArgumentException("El producto " + edit.productId() + " no existe"));
+                order.addLine(new PurchaseOrderLine(null, orderId, edit.productId(),
+                        edit.quantityOrdered(), 0, product.getUnitCost(), edit.addedByMoq()));
+            }
+        }
+        return orders.save(order);
     }
 
     @Override
+    @Transactional
     public PurchaseOrder approveOrder(Long orderId, Long adminUserId) {
-        throw new UnsupportedOperationException("Pendiente: D7");
+        PurchaseOrder order = getOrder(orderId);
+        if (order.getSupplierId() == null) {
+            throw new IllegalArgumentException("El pedido " + orderId + " no tiene proveedor: "
+                    + "asígnale uno a sus productos y genera los borradores de nuevo");
+        }
+        order.approve(Instant.now(clock));
+        PurchaseOrder saved = orders.save(order);
+        audit.record(AuditAction.ORDER_APPROVED, "PurchaseOrder", orderId,
+                saved.getLines().size() + " productos por $ " + saved.getTotalCost(), adminUserId);
+        return saved;
     }
 
+    /** FR-09: el texto que se le manda al proveedor, con una línea por producto. */
     @Override
+    @Transactional(readOnly = true)
     public SupplierMessage buildSupplierMessage(Long orderId) {
-        throw new UnsupportedOperationException("Pendiente: D7");
+        PurchaseOrder order = getOrder(orderId);
+        Supplier supplier = supplierOf(order);
+        StringBuilder body = new StringBuilder("Hola " + supplier.getName() + ", este es el pedido #"
+                + orderId + ":\n");
+        for (PurchaseOrderLine line : order.getLines()) {
+            String name = products.findById(line.getProductId()).map(Product::getName)
+                    .orElse("Producto " + line.getProductId());
+            body.append("- ").append(line.getQuantityOrdered()).append(" x ").append(name).append("\n");
+        }
+        body.append("Total: $ ").append(order.getTotalCost()).append("\nGracias.");
+        return new SupplierMessage(orderId, supplier.getName(), body.toString());
     }
 
+  
     @Override
+    @Transactional
     public PurchaseOrder sendOrder(Long orderId, Long adminUserId) {
-        throw new UnsupportedOperationException("Pendiente: D7");
+        PurchaseOrder order = getOrder(orderId);
+        Supplier supplier = supplierOf(order);
+        SupplierMessage message = buildSupplierMessage(orderId);
+        order.markSent(Instant.now(clock));
+        PurchaseOrder saved = orders.save(order);
+        NotificationResult result = notifier.send(supplier.getWhatsappNumber(), message.body());
+        if (!result.success()) {
+            alerts.raise(AlertType.NOTIFICATION_FAILED, "No se pudo enviar el pedido #" + orderId
+                    + " a " + supplier.getName() + ": " + result.errorMessage(), "PurchaseOrder", orderId);
+        }
+        return saved;
+    }
+
+    private Supplier supplierOf(PurchaseOrder order) {
+        if (order.getSupplierId() == null) {
+            throw new IllegalArgumentException("El pedido " + order.getId() + " no tiene proveedor");
+        }
+        return suppliers.findById(order.getSupplierId())
+                .orElseThrow(() -> new IllegalArgumentException("El proveedor " + order.getSupplierId() + " no existe"));
     }
 
     

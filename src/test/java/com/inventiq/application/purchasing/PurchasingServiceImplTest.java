@@ -3,28 +3,35 @@ package com.inventiq.application.purchasing;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
-import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import com.inventiq.domain.model.AuditAction;
 import com.inventiq.domain.model.AuditLog;
-import com.inventiq.domain.model.Settings;
-import com.inventiq.fakes.InMemoryAuditLogRepository;
-import com.inventiq.fakes.InMemoryBatchRepository;
-import com.inventiq.fakes.InMemorySettingsRepository;
 import com.inventiq.domain.model.Batch;
 import com.inventiq.domain.model.OrderStatus;
 import com.inventiq.domain.model.Product;
 import com.inventiq.domain.model.PurchaseOrder;
 import com.inventiq.domain.model.PurchaseOrderLine;
+import com.inventiq.domain.model.Settings;
+import com.inventiq.domain.model.Supplier;
+import com.inventiq.fakes.InMemoryAuditLogRepository;
+import com.inventiq.fakes.InMemoryBatchRepository;
 import com.inventiq.fakes.InMemoryProductRepository;
 import com.inventiq.fakes.InMemoryPurchaseOrderRepository;
+import com.inventiq.fakes.InMemorySettingsRepository;
+import com.inventiq.fakes.InMemorySupplierRepository;
+import com.inventiq.domain.model.AlertType;
+import com.inventiq.domain.port.MessageNotifier;
+import com.inventiq.domain.port.NotificationResult;
+import com.inventiq.fakes.InMemoryAlertRepository;
+import java.util.ArrayList;
 
 /** Pruebas de PurchasingServiceImpl con repositorios falsos: sin Spring ni base de datos. */
 class PurchasingServiceImplTest {
@@ -39,8 +46,18 @@ class PurchasingServiceImplTest {
     private final InMemoryAuditLogRepository auditLogs = new InMemoryAuditLogRepository();
     private final InMemoryPurchaseOrderRepository orders = new InMemoryPurchaseOrderRepository();
     private final InMemoryProductRepository products = new InMemoryProductRepository();
+    private final InMemorySupplierRepository suppliers = new InMemorySupplierRepository();
+    private final InMemoryAlertRepository alertRepository = new InMemoryAlertRepository();
+    /** Notificador falso: guarda lo que "envía" y responde lo que diga notifierWorks. */
+    private final List<String> sentMessages = new ArrayList<>();
+    private boolean notifierWorks = true;
+    private final MessageNotifier notifier = (number, body) -> {
+        sentMessages.add(number + " | " + body);
+        return notifierWorks ? NotificationResult.ok("SM1") : NotificationResult.failed("Sin señal");
+    };
     private final PurchasingServiceImpl service = new PurchasingServiceImpl(settings, batches,
-            orders, products, new DatabaseAuditRecorder(auditLogs, CLOCK), CLOCK);
+            orders, products, suppliers, notifier, new DatabaseAlertService(alertRepository, CLOCK),
+            new DatabaseAuditRecorder(auditLogs, CLOCK), CLOCK);
 
     // ---------- Parámetros (FR-08) ----------
 
@@ -243,6 +260,123 @@ class PurchasingServiceImplTest {
         PurchaseOrder order = sentOrderOf50();
 
         assertThrows(IllegalStateException.class, () -> service.closeOrder(order.getId(), ADMIN));
+    }
+
+    // ---------- Pedidos (D7) ----------
+
+    /** Borrador del proveedor 1 (Alpina) con 10 unidades del producto 7 a $2100. */
+    private PurchaseOrder draftOf10() {
+        suppliers.add(new Supplier(1L, "Alpina", "+573005550001", 3, null, null, true));
+        products.save(new Product(7L, "7702001000012", "Yogur de fresa", new BigDecimal("3200"),
+                new BigDecimal("2100"), true, 1L, 0, 0, true, null));
+        products.save(new Product(8L, "7702001000029", "Kumis", new BigDecimal("2800"),
+                new BigDecimal("1800"), true, 1L, 0, 0, true, null));
+        PurchaseOrder order = PurchaseOrder.draft(1L, NOW);
+        order.addLine(new PurchaseOrderLine(null, null, 7L, 10, 0, new BigDecimal("2100"), false));
+        return orders.save(order);
+    }
+
+    @Test
+    void draftLinesCanBeChangedAddedAndRemoved() {
+        PurchaseOrder order = draftOf10();
+
+        service.updateOrderLines(order.getId(), List.of(new OrderLineEdit(7L, 12, false),
+                new OrderLineEdit(8L, 5, true)));
+        PurchaseOrder edited = service.getOrder(order.getId());
+        assertEquals(2, edited.getLines().size());
+        assertEquals(new BigDecimal("34200.00"), edited.getTotalCost());
+
+        service.updateOrderLines(order.getId(), List.of(new OrderLineEdit(8L, 0, false)));
+        assertEquals(1, service.getOrder(order.getId()).getLines().size());
+    }
+
+    @Test
+    void onlyADraftCanBeEdited() {
+        PurchaseOrder order = draftOf10();
+        service.approveOrder(order.getId(), ADMIN);
+
+        assertThrows(IllegalStateException.class, () -> service.updateOrderLines(order.getId(),
+                List.of(new OrderLineEdit(7L, 12, false))));
+    }
+
+    @Test
+    void approvingMovesTheDraftToApprovedAndIsAudited() {
+        PurchaseOrder order = draftOf10();
+
+        PurchaseOrder approved = service.approveOrder(order.getId(), ADMIN);
+
+        assertEquals(OrderStatus.APPROVED, approved.getStatus());
+        assertEquals(NOW, approved.getApprovedAt());
+        AuditLog entry = onlyAuditEntry();
+        assertEquals(AuditAction.ORDER_APPROVED, entry.action());
+        assertEquals("1 productos por $ 21000.00", entry.details());
+    }
+
+    @Test
+    void aDraftWithoutSupplierCannotBeApproved() {
+        PurchaseOrder noSupplier = PurchaseOrder.draft(null, NOW);
+        noSupplier.addLine(new PurchaseOrderLine(null, null, 7L, 10, 0, new BigDecimal("2100"), false));
+        Long id = orders.save(noSupplier).getId();
+
+        assertThrows(IllegalArgumentException.class, () -> service.approveOrder(id, ADMIN));
+        assertEquals(OrderStatus.DRAFT, service.getOrder(id).getStatus());
+    }
+
+        @Test
+    void theSupplierMessageListsEveryProductAndTheTotal() {
+        PurchaseOrder order = draftOf10();
+
+        SupplierMessage message = service.buildSupplierMessage(order.getId());
+
+        assertEquals("Alpina", message.supplierName());
+        assertEquals("Hola Alpina, este es el pedido #" + order.getId() + ":\n- 10 x Yogur de fresa\n"
+                + "Total: $ 21000.00\nGracias.", message.body());
+    }
+
+    @Test
+    void sendingMarksTheOrderSentAndMessagesTheSupplier() {
+        PurchaseOrder order = draftOf10();
+        service.approveOrder(order.getId(), ADMIN);
+
+        PurchaseOrder sent = service.sendOrder(order.getId(), ADMIN);
+
+        assertEquals(OrderStatus.SENT, sent.getStatus());
+        assertEquals(1, sentMessages.size());
+        assertTrue(sentMessages.get(0).startsWith("+573005550001 | Hola Alpina"));
+        assertTrue(alertRepository.findUnresolved().isEmpty());
+    }
+
+    @Test
+    void ifTheMessageFailsTheOrderIsStillSentAndAnAlertIsRaised() {
+        PurchaseOrder order = draftOf10();
+        service.approveOrder(order.getId(), ADMIN);
+        notifierWorks = false;
+
+        PurchaseOrder sent = service.sendOrder(order.getId(), ADMIN);
+
+        assertEquals(OrderStatus.SENT, sent.getStatus());
+        assertEquals(AlertType.NOTIFICATION_FAILED, alertRepository.findUnresolved().get(0).getType());
+    }
+
+    @Test
+    void onlyAnApprovedOrderCanBeSent() {
+        PurchaseOrder order = draftOf10();
+
+        assertThrows(IllegalStateException.class, () -> service.sendOrder(order.getId(), ADMIN));
+        assertTrue(sentMessages.isEmpty());
+    }
+
+    @Test
+    void allOrdersListsEveryStatusNewestFirst() {
+        PurchaseOrder order = draftOf10();
+        PurchaseOrder older = PurchaseOrder.draft(1L, NOW.minusSeconds(3600));
+        older.addLine(new PurchaseOrderLine(null, null, 7L, 1, 0, new BigDecimal("2100"), false));
+        Long olderId = orders.save(older).getId();
+        service.approveOrder(order.getId(), ADMIN);
+
+        List<PurchaseOrder> all = service.allOrders();
+
+        assertEquals(List.of(order.getId(), olderId), all.stream().map(PurchaseOrder::getId).toList());
     }
 
     private AuditLog onlyAuditEntry() {

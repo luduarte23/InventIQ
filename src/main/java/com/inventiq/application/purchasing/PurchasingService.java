@@ -35,5 +35,7 @@ public interface PurchasingService {
 
     PurchaseOrder getOrder(Long orderId);
 
+    List<PurchaseOrder> allOrders();
+
     PurchaseOrder closeOrder(Long orderId, Long adminUserId);
 }
