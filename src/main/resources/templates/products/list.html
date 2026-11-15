@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Productos')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: barra}"></header>
+
+<main class="contenido">
+    <h1>Productos</h1>
+    <p class="mensaje aviso" th:if="${message}" th:text="${message}">Mensaje</p>
+
+    <div class="acciones">
+        <form method="get" th:action="@{/products/new}"><button type="submit">Nuevo producto</button></form>
+    </div>
+
+    <div class="tabla-scroll">
+        <table>
+            <thead>
+            <tr><th>Código</th><th>Nombre</th><th>Precio</th><th>Costo</th><th>Perecedero</th>
+                <th>Proveedor</th><th>Stock de seguridad</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${products}">
+                <td th:text="${p.barcode}">7702001000012</td>
+                <td th:text="${p.name}">Yogur de fresa</td>
+                <td th:text="${'$ ' + p.salePrice}">$ 3200</td>
+                <td th:text="${'$ ' + p.unitCost}">$ 2100</td>
+                <td th:text="${p.perishable} ? 'Sí' : 'No'">Sí</td>
+                <td th:text="${p.supplierId == null} ? 'Sin proveedor' : ${supplierNames[p.supplierId]}">Alpina</td>
+                <td th:text="${p.safetyStock}">5</td>
+                <td th:text="${p.active} ? 'Activo' : 'Inactivo'">Activo</td>
+                <td>
+                    <div class="acciones">
+                        <a th:href="@{/products/{id}/edit(id=${p.id})}">Editar</a>
+                        <form method="post" th:action="@{/products/{id}/active(id=${p.id})}">
+                            <input type="hidden" name="active" th:value="${!p.active}">
+                            <button type="submit" class="secundario"
+                                    th:text="${p.active} ? 'Inactivar' : 'Reactivar'">Inactivar</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

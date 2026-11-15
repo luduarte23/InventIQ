@@ -25,6 +25,8 @@
         <a th:href="@{/pos}">Ventas</a>
         <!-- Solo el administrador ve las pantallas de C y D (NFR-03). -->
         <a th:if="${isAdmin}" th:href="@{/replenishment}">Reabastecimiento</a>
+        <a th:if="${isAdmin}" th:href="@{/products}">Productos</a>
+        <a th:if="${isAdmin}" th:href="@{/suppliers}">Proveedores</a>
     </nav>
 
     <div class="usuario">
