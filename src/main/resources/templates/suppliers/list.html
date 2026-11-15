@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Proveedores')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: barra}"></header>
+
+<main class="contenido">
+    <h1>Proveedores</h1>
+    <p class="mensaje aviso" th:if="${message}" th:text="${message}">Mensaje</p>
+
+    <div class="acciones">
+        <form method="get" th:action="@{/suppliers/new}"><button type="submit">Nuevo proveedor</button></form>
+    </div>
+
+    <div class="tabla-scroll">
+        <table>
+            <thead>
+            <tr><th>Nombre</th><th>WhatsApp</th><th>Días de entrega</th><th>Mínimo ($)</th>
+                <th>Mínimo (unidades)</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="s : ${suppliers}">
+                <td th:text="${s.name}">Alpina</td>
+                <td th:text="${s.whatsappNumber}">+573005550001</td>
+                <td th:text="${s.leadTimeDays}">3</td>
+                <td th:text="${s.minOrderAmount == null} ? '-' : ${'$ ' + s.minOrderAmount}">$ 150000</td>
+                <td th:text="${s.minOrderUnits == null} ? '-' : ${s.minOrderUnits}">24</td>
+                <td th:text="${s.active} ? 'Activo' : 'Inactivo'">Activo</td>
+                <td>
+                    <div class="acciones">
+                        <a th:href="@{/suppliers/{id}/edit(id=${s.id})}">Editar</a>
+                        <form method="post" th:action="@{/suppliers/{id}/active(id=${s.id})}">
+                            <input type="hidden" name="active" th:value="${!s.active}">
+                            <button type="submit" class="secundario"
+                                    th:text="${s.active} ? 'Inactivar' : 'Reactivar'">Inactivar</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

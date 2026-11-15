@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Proveedor')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: barra}"></header>
+
+<main class="contenido">
+    <h1 th:text="${supplierId == null} ? 'Nuevo proveedor' : 'Editar proveedor'">Nuevo proveedor</h1>
+    <p class="mensaje error" th:if="${error}" th:text="${error}">Error</p>
+
+    <form method="post" th:object="${form}"
+          th:action="${supplierId == null} ? @{/suppliers} : @{/suppliers/{id}(id=${supplierId})}">
+        <label>Nombre <input type="text" th:field="*{name}" required></label>
+        <label>WhatsApp <input type="text" th:field="*{whatsappNumber}" placeholder="+573001234567" required></label>
+        <label>Días de entrega <input type="number" th:field="*{leadTimeDays}" min="0" required></label>
+        <label>Pedido mínimo en dinero (vacío = sin mínimo)
+            <input type="number" th:field="*{minOrderAmount}" min="0" step="0.01"></label>
+        <label>Pedido mínimo en unidades (vacío = sin mínimo)
+            <input type="number" th:field="*{minOrderUnits}" min="0"></label>
+
+        <div class="acciones">
+            <button type="submit">Guardar</button>
+            <a th:href="@{/suppliers}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>
