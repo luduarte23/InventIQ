@@ -226,7 +226,7 @@ La aplicación exige iniciar sesión. Al arrancar por primera vez se crean dos u
 
 | Usuario  | Contraseña  | Rol           | Puede usar                                  |
 |----------|-------------|---------------|---------------------------------------------|
-| `admin`  | `admin123`  | Administrador | Todo, incluida la consola de H2             |
+| `admin`  | `admin123`  | Administrador | Todas las pantallas, incluida la consola de H2 |
 | `cajero` | `cajero123` | Cajero        | Solo la pantalla de ventas (`/pos`)         |
 
 - Estas contraseñas son **solo para desarrollo y para la demo**. En producción se definen con las
@@ -244,11 +244,18 @@ La interfaz de usuario está en español.
 
 | Pantalla          | URL              | Quién entra            | Qué hace                                                                                                    |
 | ----------------- | ---------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Inicio de sesión  | `/login`         | Todos                  | Pide usuario y contraseña. Después de entrar, lleva a la pantalla de ventas                                 |
+| Inicio de sesión  | `/login`         | Todos                  | Pide usuario y contraseña. Después de entrar, lleva al cajero a ventas y al administrador a su inicio        |
 | Ventas (POS)      | `/pos`           | Cajero y administrador | Vender con un lector USB o escribiendo el código; el stock se descuenta en orden FIFO. Permite terminar o cancelar la venta. La venta queda a nombre del usuario con sesión iniciada |
+| Inicio del administrador | `/admin`  | Administrador          | Alertas pendientes del sistema; permite marcarlas como resueltas                                             |
 | Reabastecimiento  | `/replenishment` | Administrador          | Sugerencias de reabastecimiento y creación de borradores de pedido                                          |
+| Pedidos           | `/orders`        | Administrador          | Ver los pedidos, editar las líneas de un borrador, aprobarlo y enviarlo al proveedor                         |
+| Recepción         | `/receiving`     | Administrador          | Registrar lo que llegó de un pedido (crea los lotes) y cerrar un pedido recibido en parte                    |
+| Inventario        | `/stock`         | Administrador          | Ver los lotes de cada producto y ajustar su cantidad indicando el motivo                                     |
+| Productos         | `/products`      | Administrador          | Crear, editar, activar y desactivar productos                                                                |
+| Proveedores       | `/suppliers`     | Administrador          | Crear, editar, activar y desactivar proveedores                                                              |
+| Configuración     | `/settings`      | Administrador          | Presupuesto semanal, ventanas de cálculo y WhatsApp del administrador                                        |
 
-Las demás pantallas (inventario, pedidos y productos) están en desarrollo.
+Todas las pantallas comparten un menú que solo muestra los enlaces del rol con sesión iniciada.
 
 ### Ejecutar las pruebas
 
@@ -274,7 +281,7 @@ Las reglas de acceso se verifican automáticamente en cada `verify`:
 
 | Prueba | Qué comprueba |
 |---|---|
-| `AccessRulesTest` | Sin sesión todo lleva al login; el cajero solo usa `/pos`; el administrador entra a todo |
+| `AccessRulesTest` | Sin sesión todo lleva al login; el cajero solo usa `/pos` y recibe 403 en todas las demás pantallas; el administrador entra a todo |
 | `LoginFlowTest` | Login real con los usuarios iniciales, rechazos, cierre de sesión y token CSRF |
 | `PosControllerCashierTest` | La venta queda a nombre del usuario con sesión iniciada |
 
@@ -317,9 +324,9 @@ Un solo proyecto Maven organizado por capas (`com.inventiq`):
 | `domain.model`   | Entidades, enums y excepciones del negocio. Java puro.                                                 |
 | `domain.rules`   | Reglas de negocio puras: FIFO, ROP, MOQ, presupuesto y descuentos.                                     |
 | `domain.port`    | Interfaces que necesita el dominio: repositorios, notificador, auditoría y alertas.                    |
-| `application`    | Servicios de cada módulo (`security`, `pos`, `pricing`, `replenishment`, `purchasing`).                |
+| `application`    | Servicios de cada módulo (`security`, `pos`, `pricing`, `replenishment`, `purchasing`, `catalog`, `admin`). |
 | `infrastructure` | Persistencia JPA (entidades, repositorios y adaptadores), configuración y, más adelante, el adaptador de Twilio. |
-| `web`, `presentation` | Controladores y vistas Thymeleaf: ventas y reabastecimiento en `web`; inicio de sesión en `presentation`. Las dos son la capa de presentación. |
+| `web`, `presentation` | Controladores y vistas Thymeleaf: ventas, reabastecimiento, compras, catálogo y administración en `web`; inicio de sesión en `presentation`. Las dos son la capa de presentación. |
 
 Las dependencias van en una sola dirección: `presentación (web, presentation) → application → domain ← infrastructure`. La prueba de ArchUnit lo verifica en cada build.
 
