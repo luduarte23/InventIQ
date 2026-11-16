@@ -72,7 +72,7 @@ Las flechas indican "depende de". Lo importante es lo que **no** aparece:
 
 La infraestructura usa la aplicación en un único punto: `InventiqAuthenticationProvider` llama a `AuthenticationService` para verificar el login (ver [sección 7](#7-seguridad)).
 
-**Sobre `web` y `presentation`:** los acuerdos del equipo nombran la capa `presentation`. La pantalla de ventas (Parte B) y la de reabastecimiento (Parte C) se hicieron en `web`, y el inicio de sesión en `presentation`. Las dos cuentan como capa de presentación y las reglas de arquitectura las tratan igual. Unificar el nombre está en [pendientes](#11-pendientes).
+**Sobre `web` y `presentation`:** los acuerdos del equipo nombran la capa `presentation`. Las pantallas de ventas (Parte B), reabastecimiento (Parte C) y administración (Parte D) se hicieron en `web`, y el inicio de sesión en `presentation`. Las dos cuentan como capa de presentación y las reglas de arquitectura las tratan igual. Unificar el nombre está en [pendientes](#11-pendientes).
 
 ---
 
@@ -84,12 +84,10 @@ La infraestructura usa la aplicación en un único punto: `InventiqAuthenticatio
 | MOD-02 | POS e inventario | `application.pos`, `domain.rules` (FIFO), `web.pos` | Construido |
 | MOD-03 | Motor de reabastecimiento | `application.replenishment`, `domain.rules` (velocidad, ROP, MOQ, presupuesto), `web.replenishment` | Construido |
 | MOD-04 | Vencimientos y precios | `application.pricing` | Contrato definido (`DiscountService`); implementación _pendiente_ |
-| MOD-05 | Compras y administración | `application.purchasing` | Auditoría y alertas construidas; `PurchasingService` y pantallas _pendientes_ (Parte D) |
+| MOD-05 | Compras y administración | `application.purchasing`, `application.catalog`, `application.admin`, `web.purchasing`, `web.catalog`, `web.admin` | Construido |
 | MOD-06 | Infraestructura y despliegue | `infrastructure.persistence`, `infrastructure.messaging`, `infrastructure.config`, `db/migration` | Construido; adaptador de Twilio _pendiente_ |
 
 Cada módulo atraviesa las capas: por ejemplo, MOD-02 tiene su pantalla en presentación, su servicio en aplicación y la regla FIFO en el dominio.
-
-<!-- Parte D: actualizar la fila de MOD-05 cuando se fusione. -->
 
 ### Servicios de aplicación
 
@@ -99,9 +97,31 @@ Cada módulo atraviesa las capas: por ejemplo, MOD-02 tiene su pantalla en prese
 | `SalesService` | `SalesServiceImpl` | MOD-02 |
 | `ReplenishmentService` | `ReplenishmentServiceImpl` | MOD-03 |
 | `DiscountService` | _pendiente_ | MOD-04 |
-| `PurchasingService` | _pendiente_ (Parte D) | MOD-05 |
+| `PurchasingService` | `PurchasingServiceImpl` | MOD-05 |
+| `CatalogService` | `CatalogServiceImpl` | MOD-05 |
+| `AlertInboxService` | `AlertInboxServiceImpl` | MOD-05 |
 
 Los controladores solo conocen la interfaz del servicio. Así, cada parte del equipo pudo programar su pantalla contra un contrato acordado antes de que existiera la implementación.
+
+- **`PurchasingService`**: configuración del negocio, ajustes manuales de stock con motivo, edición y aprobación de pedidos, mensaje al proveedor, envío, recepción (que crea los lotes) y cierre de pedidos recibidos en parte. Las acciones del administrador reciben su id para la auditoría.
+- **`CatalogService`** y **`AlertInboxService`** no estaban en el contrato inicial; los agregó la Parte D para el catálogo de productos y proveedores, y para la bandeja de alertas del administrador.
+
+### Pantallas
+
+| Pantalla | Rutas | Módulo | Quién entra |
+| --- | --- | --- | --- |
+| Inicio de sesión | `/login` | MOD-01 | Todos |
+| Ventas | `/pos/**` | MOD-02 | Cajero y administrador |
+| Inicio del administrador y alertas | `/admin/**` | MOD-05 | Administrador |
+| Reabastecimiento | `/replenishment/**` | MOD-03 | Administrador |
+| Pedidos | `/orders/**` | MOD-05 | Administrador |
+| Recepción de pedidos | `/receiving/**` | MOD-05 | Administrador |
+| Inventario por lotes | `/stock/**` | MOD-05 | Administrador |
+| Productos | `/products/**` | MOD-05 | Administrador |
+| Proveedores | `/suppliers/**` | MOD-05 | Administrador |
+| Configuración | `/settings` | MOD-05 | Administrador |
+
+Todas las pantallas comparten un menú (`templates/fragments/layout.html`). `LayoutModelAdvice` le pasa a cada vista el usuario con sesión y si es administrador, para mostrar solo los enlaces que le corresponden. El menú solo oculta enlaces: quién puede entrar a cada ruta lo sigue decidiendo `SecurityConfig`.
 
 ---
 
@@ -164,6 +184,7 @@ classDiagram
         +approve()
         +markSent()
         +registerReception()
+        +closeWithPending()
         +cancel()
     }
     class PurchaseOrderLine
@@ -214,12 +235,16 @@ stateDiagram-v2
     SENT --> RECEIVED : recepción completa
     PARTIALLY_RECEIVED --> PARTIALLY_RECEIVED : otra recepción parcial
     PARTIALLY_RECEIVED --> RECEIVED : recepción completa
+    PARTIALLY_RECEIVED --> CLOSED : closeWithPending()
     DRAFT --> CANCELLED : cancel()
     APPROVED --> CANCELLED : cancel()
     SENT --> CANCELLED : cancel()
     RECEIVED --> [*]
+    CLOSED --> [*]
     CANCELLED --> [*]
 ```
+
+Un pedido que llegó incompleto y al que no le va a llegar el resto se cierra con `closeWithPending()`: queda en `CLOSED`, con las cantidades que sí se recibieron, y deja de aparecer como pendiente de recepción.
 
 ### Otras entidades
 
@@ -318,7 +343,7 @@ El script demo es "repetible" (`R__`): Flyway lo vuelve a aplicar cada vez que c
 | `AuthenticationServiceImpl` | Aplicación | Verifica usuario, contraseña y que el usuario esté activo |
 | `PasswordEncoderConfig` | Infraestructura | Define BCrypt como algoritmo de contraseñas |
 | `InitialUsers` | Infraestructura | Crea `admin` y `cajero` al arrancar si no existen |
-| `LoginController`, `HomeController` | Presentación | Página de login y redirección de `/` a `/pos` |
+| `LoginController`, `HomeController` | Presentación | Página de login y redirección de `/` según el rol: el cajero a `/pos`, el administrador a `/admin` |
 | `AuthenticatedUser` | Aplicación | El usuario guardado en la sesión: id, nombre y rol |
 
 ### Reglas de acceso
@@ -326,9 +351,9 @@ El script demo es "repetible" (`R__`): Flyway lo vuelve a aplicar cada vez que c
 | Ruta | Sin sesión | Cajero | Administrador |
 | --- | --- | --- | --- |
 | `/login` | Sí | Sí | Sí |
-| `/` | Al login | Redirige a `/pos` | Redirige a `/pos` |
+| `/` | Al login | Redirige a `/pos` | Redirige a `/admin` |
 | `/pos/**` | Al login | Sí | Sí |
-| Cualquier otra (`/replenishment`, `/h2-console`, pantallas futuras) | Al login | No (403) | Sí |
+| Cualquier otra (`/admin`, `/replenishment`, `/orders`, `/receiving`, `/stock`, `/products`, `/suppliers`, `/settings`, `/h2-console`, pantallas futuras) | Al login | No (403) | Sí |
 
 La última fila es **cerrada por defecto**: una pantalla nueva queda solo para el administrador sin que nadie tenga que acordarse de protegerla. Para abrirla al cajero hay que agregarla explícitamente en `SecurityConfig`.
 
@@ -439,7 +464,8 @@ Todas estas comprobaciones corren con `./mvnw verify` y en el CI, en cada pull r
 | Reglas y entidades del dominio | Pruebas unitarias en `domain`, sin Spring |
 | Servicios de aplicación | Pruebas con los repositorios en memoria (`fakes`) |
 | Mapeo a la base de datos | Pruebas de persistencia con H2 en memoria (`infrastructure.persistence`) |
-| Reglas de acceso, login y CSRF | `AccessRulesTest`, `LoginFlowTest`, `PosControllerCashierTest` |
+| Reglas de acceso, login y CSRF | `AccessRulesTest` (todas las pantallas, para los dos roles), `LoginFlowTest`, `PosControllerCashierTest` |
+| Pantallas | Una prueba con MockMvc por pantalla (`*ScreenTest`, `ReplenishmentControllerTest`, `AdminHomeControllerTest`, `LayoutTest`) |
 | Datos de la demo | `DemoDataTest`, `DemoUsersScriptTest` |
 
 El CI (GitHub Actions, check **Build y pruebas**) además guarda el reporte de cobertura (`reporte-jacoco`) y el ejecutable (`inventiq-jar`). La rama `main` está protegida: los cambios entran solo por pull request aprobado y con el CI en verde.
@@ -448,7 +474,6 @@ El CI (GitHub Actions, check **Build y pruebas**) además guarda el reporte de c
 
 ## 11. Pendientes
 
-- **MOD-05, compras y administración (Parte D):** implementación de `PurchasingService` y sus pantallas. _Esta sección y la fila de MOD-05 se actualizan cuando se fusione._
 - **MOD-04, descuentos por vencimiento:** implementación de `DiscountService`.
 - **Adaptador de Twilio** para `MessageNotifier`, activado con `inventiq.notifier=twilio`.
 - **Nombre de la capa de presentación:** unificar `web` y `presentation` en un solo paquete, según los acuerdos del equipo.
