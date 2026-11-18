@@ -12,11 +12,9 @@
 >
 > Docente: Magda Lucía Mejía Torres
 >
-> Entrega 1 - Requisitos y Arquitectura | Fecha de entrega: 05/10/2026
+> Entrega 1 - Requisitos y Arquitectura | Finalizado
 >
-> Entrega 2 - Incremento 1 | En curso
->
-> Repositorio: https://github.com/luduarte23/InventIQ
+> Entrega 2 - Incremento 1 | Finalizado
 
 ---
 
@@ -55,12 +53,12 @@ InventIQ registra las ventas en tiempo real mediante lectura de código de barra
 
 ## Interesados y roles de usuario
 
-| Rol                              | Descripción                                                                                                         |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Administrador                    | Dueño o administrador de la tienda. Accede al panel, configura proveedores, umbrales de inventario y precios.       |
-| Cajero                           | Empleado de la tienda. Usa la pantalla de ventas para escanear productos o escribir el código a mano.               |
-| Lector de código de barras       | Dispositivo USB opcional; envía el código como texto (modo teclado).                                                |
-| Twilio (API de WhatsApp)         | Da formato y entrega las alertas del sistema a la cuenta de WhatsApp del administrador.                             |
+| Rol                        | Descripción                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Administrador              | Dueño o administrador de la tienda. Accede al panel, configura proveedores, umbrales de inventario y precios. |
+| Cajero                     | Empleado de la tienda. Usa la pantalla de ventas para escanear productos o escribir el código a mano.         |
+| Lector de código de barras | Dispositivo USB opcional; envía el código como texto (modo teclado).                                          |
+| Twilio (API de WhatsApp)   | Da formato y entrega las alertas del sistema a la cuenta de WhatsApp del administrador.                       |
 
 ---
 
@@ -84,14 +82,14 @@ La arquitectura tal como está construida (capas, módulos, modelo de dominio, p
 
 ### Módulos
 
-| Módulo | Nombre                        | Responsabilidades                                                                                                    |
-| ------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| MOD-01 | Seguridad y acceso            | Autenticación, seguridad de la sesión, control de acceso por roles.                                                  |
-| MOD-02 | POS e inventario              | Procesamiento de ventas en tiempo real con código de barras, descuento de lotes FIFO.                                |
-| MOD-03 | Motor de reabastecimiento     | Cálculo del ROP, agrupación por proveedor, optimización del MOQ, priorización por presupuesto.                       |
-| MOD-04 | Vencimientos y precios        | Seguimiento de la vida útil de los lotes, cálculo de descuentos progresivos por vencimiento.                         |
-| MOD-05 | Compras y administración      | Ajustes manuales de parámetros, confirmación de recepción de pedidos, mensajes a proveedores, auditoría de decisiones. |
-| MOD-06 | Infraestructura y despliegue  | Empaquetado, base de datos embebida, migraciones versionadas, ejecución con un solo comando.                         |
+| Módulo | Nombre                       | Responsabilidades                                                                                                      |
+| ------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| MOD-01 | Seguridad y acceso           | Autenticación, seguridad de la sesión, control de acceso por roles.                                                    |
+| MOD-02 | POS e inventario             | Procesamiento de ventas en tiempo real con código de barras, descuento de lotes FIFO.                                  |
+| MOD-03 | Motor de reabastecimiento    | Cálculo del ROP, agrupación por proveedor, optimización del MOQ, priorización por presupuesto.                         |
+| MOD-04 | Vencimientos y precios       | Seguimiento de la vida útil de los lotes, cálculo de descuentos progresivos por vencimiento.                           |
+| MOD-05 | Compras y administración     | Ajustes manuales de parámetros, confirmación de recepción de pedidos, mensajes a proveedores, auditoría de decisiones. |
+| MOD-06 | Infraestructura y despliegue | Empaquetado, base de datos embebida, migraciones versionadas, ejecución con un solo comando.                           |
 
 ### Despliegue
 
@@ -101,44 +99,28 @@ La aplicación se empaqueta como un único JAR autocontenido (`inventiq.jar`) qu
 
 ## Stack tecnológico
 
-| Elemento       | Tecnología                                                                                                  |
-| -------------- | ----------------------------------------------------------------------------------------------------------- |
-| Lenguaje       | Java 21 (LTS)                                                                                               |
-| Framework      | Spring Boot 4.1 (servidor embebido)                                                                         |
-| Vistas         | Thymeleaf, renderizadas en el servidor                                                                      |
-| Build          | Maven, con el wrapper (`./mvnw`) incluido                                                                   |
-| Base de datos  | H2 embebida, guardada en archivo; esquema con migraciones versionadas de Flyway                             |
-| Autenticación  | Spring Security: por sesión, restringida por rol (Administrador / Cajero), contraseñas con hash BCrypt      |
-| API externa    | Sandbox de WhatsApp de Twilio, detrás de la interfaz `MessageNotifier` - _en desarrollo_ (por ahora, los mensajes se escriben en el log) |
-| Pruebas        | JUnit, MockMvc con Spring Security Test, ArchUnit 1.5 y JaCoCo 0.8.16 (el build falla si la cobertura del dominio baja del 80 %) |
-| CI             | GitHub Actions: `./mvnw verify` en cada pull request y en cada push a `main`; guarda el reporte de cobertura y el JAR ejecutable |
+| Elemento      | Tecnología                                                                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Lenguaje      | Java 21 (LTS)                                                                                                                            |
+| Framework     | Spring Boot 4.1 (servidor embebido)                                                                                                      |
+| Vistas        | Thymeleaf, renderizadas en el servidor                                                                                                   |
+| Build         | Maven, con el wrapper (`./mvnw`) incluido                                                                                                |
+| Base de datos | H2 embebida, guardada en archivo; esquema con migraciones versionadas de Flyway                                                          |
+| Autenticación | Spring Security: por sesión, restringida por rol (Administrador / Cajero), contraseñas con hash BCrypt                                   |
+| API externa   | Sandbox de WhatsApp de Twilio, detrás de la interfaz `MessageNotifier` - _en desarrollo_ (por ahora, los mensajes se escriben en el log) |
+| Pruebas       | JUnit, MockMvc con Spring Security Test, ArchUnit 1.5 y JaCoCo 0.8.16 (el build falla si la cobertura del dominio baja del 80 %)         |
+| CI            | GitHub Actions: `./mvnw verify` en cada pull request y en cada push a `main`; guarda el reporte de cobertura y el JAR ejecutable         |
 
 ---
 
 ## Terminología
 
-| Término                              | Definición                                                                                                                                                       |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **ROP** (punto de reorden)           | Nivel crítico de inventario que dispara una sugerencia de compra automática; se calcula con la velocidad diaria de ventas, el tiempo de entrega y el stock de seguridad. |
-| **FIFO**                             | Primero en entrar, primero en salir: los lotes más antiguos se descuentan y venden primero para evitar pérdidas por vencimiento.                                  |
-| **MOQ** (pedido mínimo)              | Cantidad mínima de unidades o monto que exige un proveedor para procesar un pedido y dar beneficios como el envío gratis.                                        |
-| **POS** (punto de venta)             | La interfaz de captura de ventas, donde cada lectura de código de barras descuenta inventario en tiempo real.                                                    |
-
----
-
-## Declaración de uso de IA
-
-Este proyecto usó asistencia de IA durante el desarrollo. El código asistido por IA pasa por pull requests como cualquier otro código, y cada integrante debe poder explicarlo.
-
-| Herramienta        | Partes                                                                                                                                                                                                                                                                                  | Propósito                                                                                                                          |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Claude             | Entrega 1                                                                                                                                                                                                                                                                               | Validar la arquitectura frente a las restricciones obligatorias del stack                                                          |
-| Claude (claude.ai) | Parte A: configuración de H2 y Flyway y migración `V1` (A1); entidades, enums, excepciones, puertos e interfaces de servicio del dominio (A2); perfil de pruebas, JaCoCo, pruebas unitarias del dominio, ArchUnit, workflow de GitHub Actions y protección de `main` (A3); este README (A4); persistencia JPA de usuarios, proveedores, pedidos, configuración, auditoría y alertas (A5); notificador simulado y perfil `demo` (A6); inicio de sesión con roles (A7); pruebas de seguridad (A8); JAR ejecutable (A9) | Guía paso a paso y generación de código y configuración. El integrante revisó, compiló y ejecutó cada cambio antes de hacer commit |
-| Claude Code        | Parte B: regla FIFO, servicio de ventas, persistencia provisional de productos, lotes y ventas, pantalla de ventas y sus pruebas                                                                                                                                                        | Implementar las tareas B2 a B4, B6 y B10 del plan de trabajo. El autor revisó cada cambio antes de subirlo                         |
-| _Por completar_    | Parte C: motor de reabastecimiento                                                                                                                                                                                                                                                      | _Por completar_                                                                                                                    |
-| _Por completar_    | Parte D: compras y administración                                                                                                                                                                                                                                                       | _Por completar_                                                                                                                    |
-
-Regla del equipo: la IA no hace commits ni push. Cada integrante revisa los cambios y los sube con su propia identidad.
+| Término                    | Definición                                                                                                                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **ROP** (punto de reorden) | Nivel crítico de inventario que dispara una sugerencia de compra automática; se calcula con la velocidad diaria de ventas, el tiempo de entrega y el stock de seguridad. |
+| **FIFO**                   | Primero en entrar, primero en salir: los lotes más antiguos se descuentan y venden primero para evitar pérdidas por vencimiento.                                         |
+| **MOQ** (pedido mínimo)    | Cantidad mínima de unidades o monto que exige un proveedor para procesar un pedido y dar beneficios como el envío gratis.                                                |
+| **POS** (punto de venta)   | La interfaz de captura de ventas, donde cada lectura de código de barras descuenta inventario en tiempo real.                                                            |
 
 ---
 
@@ -203,12 +185,12 @@ La base de datos se crea en la carpeta `data`, **al lado de donde se ejecuta el 
 
 **Opciones** (se escriben después del nombre del JAR):
 
-| Opción                              | Para qué                                |
-| ----------------------------------- | --------------------------------------- |
-| `--server.port=9090`                | Usar otro puerto                        |
-| `--spring.profiles.active=demo`     | Datos de ejemplo, en una base separada  |
-| `--spring.h2.console.enabled=false` | Desactivar la consola de H2             |
-| `--spring.jpa.show-sql=false`       | No escribir el SQL en el log            |
+| Opción                              | Para qué                               |
+| ----------------------------------- | -------------------------------------- |
+| `--server.port=9090`                | Usar otro puerto                       |
+| `--spring.profiles.active=demo`     | Datos de ejemplo, en una base separada |
+| `--spring.h2.console.enabled=false` | Desactivar la consola de H2            |
+| `--spring.jpa.show-sql=false`       | No escribir el SQL en el log           |
 
 **Instalación en la tienda:** antes del **primer** arranque, define las contraseñas iniciales con variables de entorno (PowerShell):
 
@@ -224,10 +206,10 @@ Las contraseñas solo se toman al crear los usuarios en una base nueva; después
 
 La aplicación exige iniciar sesión. Al arrancar por primera vez se crean dos usuarios:
 
-| Usuario  | Contraseña  | Rol           | Puede usar                                  |
-|----------|-------------|---------------|---------------------------------------------|
+| Usuario  | Contraseña  | Rol           | Puede usar                                     |
+| -------- | ----------- | ------------- | ---------------------------------------------- |
 | `admin`  | `admin123`  | Administrador | Todas las pantallas, incluida la consola de H2 |
-| `cajero` | `cajero123` | Cajero        | Solo la pantalla de ventas (`/pos`)         |
+| `cajero` | `cajero123` | Cajero        | Solo la pantalla de ventas (`/pos`)            |
 
 - Estas contraseñas son **solo para desarrollo y para la demo**. En producción se definen con las
   variables de entorno `INVENTIQ_INITIALUSERS_ADMINPASSWORD` e `INVENTIQ_INITIALUSERS_CASHIERPASSWORD`
@@ -242,18 +224,18 @@ La aplicación exige iniciar sesión. Al arrancar por primera vez se crean dos u
 
 La interfaz de usuario está en español.
 
-| Pantalla          | URL              | Quién entra            | Qué hace                                                                                                    |
-| ----------------- | ---------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Inicio de sesión  | `/login`         | Todos                  | Pide usuario y contraseña. Después de entrar, lleva al cajero a ventas y al administrador a su inicio        |
-| Ventas (POS)      | `/pos`           | Cajero y administrador | Vender con un lector USB o escribiendo el código; el stock se descuenta en orden FIFO. Permite terminar o cancelar la venta. La venta queda a nombre del usuario con sesión iniciada |
-| Inicio del administrador | `/admin`  | Administrador          | Alertas pendientes del sistema; permite marcarlas como resueltas                                             |
-| Reabastecimiento  | `/replenishment` | Administrador          | Sugerencias de reabastecimiento y creación de borradores de pedido                                          |
-| Pedidos           | `/orders`        | Administrador          | Ver los pedidos, editar las líneas de un borrador, aprobarlo y enviarlo al proveedor                         |
-| Recepción         | `/receiving`     | Administrador          | Registrar lo que llegó de un pedido (crea los lotes) y cerrar un pedido recibido en parte                    |
-| Inventario        | `/stock`         | Administrador          | Ver los lotes de cada producto y ajustar su cantidad indicando el motivo                                     |
-| Productos         | `/products`      | Administrador          | Crear, editar, activar y desactivar productos                                                                |
-| Proveedores       | `/suppliers`     | Administrador          | Crear, editar, activar y desactivar proveedores                                                              |
-| Configuración     | `/settings`      | Administrador          | Presupuesto semanal, ventanas de cálculo y WhatsApp del administrador                                        |
+| Pantalla                 | URL              | Quién entra            | Qué hace                                                                                                                                                                             |
+| ------------------------ | ---------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Inicio de sesión         | `/login`         | Todos                  | Pide usuario y contraseña. Después de entrar, lleva al cajero a ventas y al administrador a su inicio                                                                                |
+| Ventas (POS)             | `/pos`           | Cajero y administrador | Vender con un lector USB o escribiendo el código; el stock se descuenta en orden FIFO. Permite terminar o cancelar la venta. La venta queda a nombre del usuario con sesión iniciada |
+| Inicio del administrador | `/admin`         | Administrador          | Alertas pendientes del sistema; permite marcarlas como resueltas                                                                                                                     |
+| Reabastecimiento         | `/replenishment` | Administrador          | Sugerencias de reabastecimiento y creación de borradores de pedido                                                                                                                   |
+| Pedidos                  | `/orders`        | Administrador          | Ver los pedidos, editar las líneas de un borrador, aprobarlo y enviarlo al proveedor                                                                                                 |
+| Recepción                | `/receiving`     | Administrador          | Registrar lo que llegó de un pedido (crea los lotes) y cerrar un pedido recibido en parte                                                                                            |
+| Inventario               | `/stock`         | Administrador          | Ver los lotes de cada producto y ajustar su cantidad indicando el motivo                                                                                                             |
+| Productos                | `/products`      | Administrador          | Crear, editar, activar y desactivar productos                                                                                                                                        |
+| Proveedores              | `/suppliers`     | Administrador          | Crear, editar, activar y desactivar proveedores                                                                                                                                      |
+| Configuración            | `/settings`      | Administrador          | Presupuesto semanal, ventanas de cálculo y WhatsApp del administrador                                                                                                                |
 
 Todas las pantallas comparten un menú que solo muestra los enlaces del rol con sesión iniciada.
 
@@ -279,11 +261,11 @@ El reporte de cobertura se genera en `target/site/jacoco/index.html`. El CI tamb
 
 Las reglas de acceso se verifican automáticamente en cada `verify`:
 
-| Prueba | Qué comprueba |
-|---|---|
-| `AccessRulesTest` | Sin sesión todo lleva al login; el cajero solo usa `/pos` y recibe 403 en todas las demás pantallas; el administrador entra a todo |
-| `LoginFlowTest` | Login real con los usuarios iniciales, rechazos, cierre de sesión y token CSRF |
-| `PosControllerCashierTest` | La venta queda a nombre del usuario con sesión iniciada |
+| Prueba                     | Qué comprueba                                                                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `AccessRulesTest`          | Sin sesión todo lleva al login; el cajero solo usa `/pos` y recibe 403 en todas las demás pantallas; el administrador entra a todo |
+| `LoginFlowTest`            | Login real con los usuarios iniciales, rechazos, cierre de sesión y token CSRF                                                     |
+| `PosControllerCashierTest` | La venta queda a nombre del usuario con sesión iniciada                                                                            |
 
 Para probar una pantalla protegida con MockMvc se usa el ayudante `TestUsers`
 (`src/test/java/com/inventiq/support`):
@@ -319,13 +301,13 @@ class MiPantallaTest {
 
 Un solo proyecto Maven organizado por capas (`com.inventiq`):
 
-| Paquete          | Contenido                                                                                              |
-| ---------------- | ------------------------------------------------------------------------------------------------------ |
-| `domain.model`   | Entidades, enums y excepciones del negocio. Java puro.                                                 |
-| `domain.rules`   | Reglas de negocio puras: FIFO, ROP, MOQ, presupuesto y descuentos.                                     |
-| `domain.port`    | Interfaces que necesita el dominio: repositorios, notificador, auditoría y alertas.                    |
-| `application`    | Servicios de cada módulo (`security`, `pos`, `pricing`, `replenishment`, `purchasing`, `catalog`, `admin`). |
-| `infrastructure` | Persistencia JPA (entidades, repositorios y adaptadores), configuración y, más adelante, el adaptador de Twilio. |
+| Paquete               | Contenido                                                                                                                                                                         |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain.model`        | Entidades, enums y excepciones del negocio. Java puro.                                                                                                                            |
+| `domain.rules`        | Reglas de negocio puras: FIFO, ROP, MOQ, presupuesto y descuentos.                                                                                                                |
+| `domain.port`         | Interfaces que necesita el dominio: repositorios, notificador, auditoría y alertas.                                                                                               |
+| `application`         | Servicios de cada módulo (`security`, `pos`, `pricing`, `replenishment`, `purchasing`, `catalog`, `admin`).                                                                       |
+| `infrastructure`      | Persistencia JPA (entidades, repositorios y adaptadores), configuración y, más adelante, el adaptador de Twilio.                                                                  |
 | `web`, `presentation` | Controladores y vistas Thymeleaf: ventas, reabastecimiento, compras, catálogo y administración en `web`; inicio de sesión en `presentation`. Las dos son la capa de presentación. |
 
 Las dependencias van en una sola dirección: `presentación (web, presentation) → application → domain ← infrastructure`. La prueba de ArchUnit lo verifica en cada build.
